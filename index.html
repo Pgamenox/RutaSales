@@ -3,14 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RutaSales Beta 6</title>
-<link rel="stylesheet" href="styles.css">
+<title>RutaSales Beta 6.1</title>
+<link rel="stylesheet" href="styles.css?v=61">
 </head>
 <body>
-<header><b>RutaSales</b><div>BETA 6 QA · GPS + cámara en vivo obligatorios</div></header>
+<header><b>RutaSales</b><div>BETA 6.1 QA · GPS + cámara en vivo obligatorios</div></header>
 <main>
 <div id="notice" class="card no-print"></div>
-<div class="card no-print"><div class="row"><button id="btnSeller">📱 Vendedor</button><button id="btnSupervisor" class="orange">👔 Supervisor</button></div></div>
+<div class="card no-print"><div class="row">
+<form method="get" action="./"><input type="hidden" name="mode" value="seller"><input type="hidden" name="v" value="61"><button type="submit">📱 Vendedor</button></form>
+<form method="get" action="./"><input type="hidden" name="mode" value="supervisor"><input type="hidden" name="v" value="61"><button type="submit" class="orange">👔 Supervisor</button></form>
+</div></div>
 <section id="seller">
 <div class="card"><h2>Mi ruta de hoy</h2><div id="sellerWho"></div><div id="sellerList"></div></div>
 <div class="card no-print"><h3>+ Prospecto cercano</h3><div class="row"><input id="pTime" type="time"><input id="pClient" placeholder="Cliente"><input id="pAddress" placeholder="Dirección"><input id="pReason" placeholder="Motivo"></div><button onclick="addProspect()">Agregar prospecto</button></div>
@@ -23,8 +26,19 @@
 <div class="card"><h2>Reporte del día</h2><div id="report"></div><div class="row no-print"><button onclick="window.print()">Imprimir / PDF</button><button onclick="shareReport()">Compartir resumen</button></div></div>
 </main>
 <div id="camModal" class="camera hidden no-print"><div class="cameraBox"><b>📷 Evidencia de inicio · cámara en vivo</b><div id="camStatus" class="small cameraStatus">Preparando…</div><video id="camVideo" autoplay playsinline muted></video><canvas id="camCanvas" class="hidden"></canvas><div class="row"><button class="green" onclick="capturePhoto()">📸 Tomar evidencia ahora</button><button class="light" onclick="closeCamera()">Cancelar</button></div><div class="small cameraStatus">Este flujo no ofrece selección desde galería.</div></div></div>
-<script src="app.js"></script>
-<script src="camera-fix.js"></script>
-<script src="role-fix.js"></script>
+<script src="app.js?v=61"></script>
+<script src="camera-fix.js?v=61"></script>
+<script src="role-fix.js?v=61"></script>
+<script>
+(function(){
+ const mode=new URLSearchParams(location.search).get('mode')||'seller';
+ const apply=()=>{
+   if(typeof window.switchRoleSafe==='function') window.switchRoleSafe(mode);
+   else if(typeof window.role==='function') window.role(mode);
+ };
+ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',apply,{once:true});
+ else apply();
+})();
+</script>
 </body>
 </html>
