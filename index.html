@@ -10,7 +10,7 @@
 <header><b>RutaSales</b><div>BETA 6 QA · GPS + cámara en vivo obligatorios</div></header>
 <main>
 <div id="notice" class="card no-print"></div>
-<div class="card no-print"><div class="row"><button onclick="role('seller')">📱 Vendedor</button><button class="orange" onclick="role('supervisor')">👔 Supervisor</button></div></div>
+<div class="card no-print"><div class="row"><button id="btnSeller">📱 Vendedor</button><button id="btnSupervisor" class="orange">👔 Supervisor</button></div></div>
 <section id="seller">
 <div class="card"><h2>Mi ruta de hoy</h2><div id="sellerWho"></div><div id="sellerList"></div></div>
 <div class="card no-print"><h3>+ Prospecto cercano</h3><div class="row"><input id="pTime" type="time"><input id="pClient" placeholder="Cliente"><input id="pAddress" placeholder="Dirección"><input id="pReason" placeholder="Motivo"></div><button onclick="addProspect()">Agregar prospecto</button></div>
@@ -25,5 +25,6 @@
 <div id="camModal" class="camera hidden no-print"><div class="cameraBox"><b>📷 Evidencia de inicio · cámara en vivo</b><div id="camStatus" class="small cameraStatus">Preparando…</div><video id="camVideo" autoplay playsinline muted></video><canvas id="camCanvas" class="hidden"></canvas><div class="row"><button class="green" onclick="capturePhoto()">📸 Tomar evidencia ahora</button><button class="light" onclick="closeCamera()">Cancelar</button></div><div class="small cameraStatus">Este flujo no ofrece selección desde galería.</div></div></div>
 <script src="app.js"></script>
 <script src="camera-fix.js"></script>
+<script src="role-fix.js"></script>
 </body>
 </html>
