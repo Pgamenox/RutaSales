@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RutaSales Beta 6</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header><b>RutaSales</b><div>BETA 6 QA · GPS + cámara en vivo obligatorios</div></header>
+<main>
+<div id="notice" class="card no-print"></div>
+<div class="card no-print"><div class="row"><button onclick="role('seller')">📱 Vendedor</button><button class="orange" onclick="role('supervisor')">👔 Supervisor</button></div></div>
+<section id="seller">
+<div class="card"><h2>Mi ruta de hoy</h2><div id="sellerWho"></div><div id="sellerList"></div></div>
+<div class="card no-print"><h3>+ Prospecto cercano</h3><div class="row"><input id="pTime" type="time"><input id="pClient" placeholder="Cliente"><input id="pAddress" placeholder="Dirección"><input id="pReason" placeholder="Motivo"></div><button onclick="addProspect()">Agregar prospecto</button></div>
+</section>
+<section id="supervisor" class="hidden">
+<div class="card no-print"><h2>Asignar visita</h2><div class="row"><input id="routeName" placeholder="Ruta" value="Ruta Sur"><input id="assignedSeller" placeholder="Vendedor" value="Vendedor Demo"><input id="assignTime" type="time"><input id="assignClient" placeholder="Cliente"></div><div class="row"><input id="assignAddress" placeholder="Dirección"><input id="assignReason" placeholder="Motivo"><input id="assignCoords" placeholder="Lat,Lon opcional"></div><button onclick="assignVisit()">Asignar</button></div>
+<div class="card no-print"><h3>Reglas</h3><div class="row"><input id="grace" type="number" min="0" value="15"><input id="radius" type="number" min="10" value="150"><button onclick="saveRules()">Guardar tolerancia/radio</button></div></div>
+<div class="card"><div class="kpis"><div class="kpi"><b id="kAssigned">0</b><div class="small">Asignadas</div></div><div class="kpi"><b id="kStarted">0</b><div class="small">Iniciadas</div></div><div class="kpi"><b id="kOnTime">0</b><div class="small">A tiempo</div></div><div class="kpi"><b id="kEvidence">0</b><div class="small">Evidencias</div></div></div><div id="supervisorList"></div></div>
+</section>
+<div class="card"><h2>Reporte del día</h2><div id="report"></div><div class="row no-print"><button onclick="window.print()">Imprimir / PDF</button><button onclick="shareReport()">Compartir resumen</button></div></div>
+</main>
+<div id="camModal" class="camera hidden no-print"><div class="cameraBox"><b>📷 Evidencia de inicio · cámara en vivo</b><div id="camStatus" class="small cameraStatus">Preparando…</div><video id="camVideo" autoplay playsinline muted></video><canvas id="camCanvas" class="hidden"></canvas><div class="row"><button class="green" onclick="capturePhoto()">📸 Tomar evidencia ahora</button><button class="light" onclick="closeCamera()">Cancelar</button></div><div class="small cameraStatus">Este flujo no ofrece selección desde galería.</div></div></div>
+<script src="app.js"></script>
+</body>
+</html>
