@@ -40,7 +40,7 @@ async function seller(){
   sp.onchange=x=>{sellerId=x.target.value;localStorage.setItem("rs_demo_seller",sellerId);seller()}
  }catch(err){app.innerHTML='<div class="card danger">Error: '+e(err.message)+'</div>'}
 }
-async function complete(id){try{const x=await evidence();await api("rs_visits?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"COMPLETADA",lat:x.g.lat,lng:x.g.lng,accuracy:x.g.accuracy,photo_data:x.p})},SEL,sellerId);alert("Visita enviada con GPS + cámara en vivo.");seller()}catch(err){}}
+async function complete(id){try{const x=await evidence();await api("rs_visits?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"COMPLETADA",lat:x.g.lat,lng:x.g.lng,accuracy:x.g.accuracy,photo_data:x.p,evidence_source:"LIVE_CAMERA",device_captured_at:new Date().toISOString()})},SEL,sellerId);alert("Visita enviada con GPS + cámara en vivo.");seller()}catch(err){}}
 async function incident(r){const type=prompt("Tipo de imprevisto");if(!type)return;const details=prompt("Descripción")||"";try{const x=await evidence();await api("rs_incidents",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({route_id:r,seller_id:sellerId,incident_type:type,details,lat:x.g.lat,lng:x.g.lng,accuracy:x.g.accuracy,photo_data:x.p})},SEL,sellerId);alert("Imprevisto enviado.");seller()}catch(err){}}
 window.complete=complete;window.incident=incident;
 function userIsEditing(){
