@@ -17,13 +17,13 @@ async function supervisor(){
   const [sellers,routes,visits,incs]=await Promise.all([api("rs_sellers?select=*&order=name"),api("rs_routes?select=*&order=name"),api("rs_visits?select=*&order=created_at.desc"),api("rs_incidents?select=*&order=created_at.desc")]);
   const active=localStorage.getItem("rs_active_route")||(routes[0]?.id||""),rv=visits.filter(v=>!active||v.route_id===active),open=incs.filter(i=>!i.resolved);
   const ro=routes.map(r=>'<option value="'+r.id+'" '+(r.id===active?'selected':'')+'>'+e(r.name)+'</option>').join(""),so=sellers.map(s=>'<option value="'+s.id+'">'+e(s.name)+'</option>').join("");
-  app.innerHTML='<div class="card"><b>Panel Supervisor</b><div class="small">Sincronización automática cada 3 segundos.</div></div>'+
+  app.innerHTML='<div class="card"><b>Panel Supervisor</b><div class="small">Sincronización manual para evitar borrar campos durante la captura.</div><button id="refreshData" class="light" type="button">🔄 Actualizar datos</button></div>'+
   '<div class="grid"><div class="card"><div class="small">Rutas</div><h2>'+routes.length+'</h2></div><div class="card"><div class="small">Vendedores</div><h2>'+sellers.length+'</h2></div><div class="card"><div class="small">Visitas ruta activa</div><h2>'+rv.length+'</h2></div><div class="card"><div class="small">Contingencias abiertas</div><h2>'+open.length+'</h2></div></div>'+
   '<div class="card"><label>Ruta activa</label><select id="rf">'+ro+'</select></div>'+
   '<div class="card"><b>Asignar visita</b><div class="row"><div><label>Ruta</label><select id="fr">'+ro+'</select></div><div><label>Vendedor</label><select id="fs">'+so+'</select></div></div><div class="row"><div><label>Cliente</label><input id="fc"></div><div><label>Fecha</label><input id="fd" type="date" value="'+today()+'"></div></div><label>Dirección</label><input id="fa"><button id="add">Asignar visita</button></div>'+
   '<div class="card"><b>Ruta activa</b>'+(rv.length?rv.map(v=>'<div class="visit"><b>'+e(v.customer_name)+'</b> <span class="badge">'+e(v.status)+'</span><div class="small">'+e(routes.find(r=>r.id===v.route_id)?.name)+' · '+e(sellers.find(s=>s.id===v.seller_id)?.name)+' · '+e(v.address)+'</div>'+(v.completed_at?'<div class="ok">Evidencia recibida · hora servidor '+new Date(v.completed_at).toLocaleString()+'</div>':'')+(v.photo_data?'<img class="evidence" src="'+v.photo_data+'">':'')+'</div>').join(""):'<p class="small">Sin visitas en esta ruta.</p>')+'</div>'+
   '<div class="card"><b>🚨 Centro de contingencias</b>'+(open.length?open.map(i=>'<div class="visit"><b>'+e(i.incident_type)+'</b><div class="small">'+e(sellers.find(s=>s.id===i.seller_id)?.name)+' · '+e(routes.find(r=>r.id===i.route_id)?.name)+' · GPS ±'+Math.round(i.accuracy||0)+' m · '+new Date(i.captured_at).toLocaleString()+'</div><div>'+e(i.details||"")+'</div>'+(i.photo_data?'<img class="evidence" src="'+i.photo_data+'">':'')+'<label>Reasignar pendientes a</label><select id="to_'+i.id+'">'+so+'</select><button class="dark" onclick="reassign(\''+i.id+'\',\''+i.seller_id+'\',\''+i.route_id+'\')">Reasignar pendientes</button></div>').join(""):'<p class="small">Sin contingencias abiertas.</p>')+'</div>';
-  rf.onchange=x=>{localStorage.setItem("rs_active_route",x.target.value);supervisor()};
+  rf.onchange=x=>{localStorage.setItem("rs_active_route",x.target.value);supervisor()}; refreshData.onclick=()=>supervisor();
   add.onclick=async()=>{if(!fc.value.trim()||!fa.value.trim())return alert("Falta cliente o dirección");await api("rs_visits",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({route_id:fr.value,seller_id:fs.value,customer_name:fc.value.trim(),address:fa.value.trim(),visit_date:fd.value,status:"PENDIENTE"})});supervisor()}
  }catch(err){app.innerHTML='<div class="card danger">Error: '+e(err.message)+'</div>'}
 }
@@ -51,8 +51,7 @@ function userIsEditing(){
 }
 if(VIEW==="supervisor"){
  supervisor();
- setInterval(()=>{if(!userIsEditing())supervisor()},3000);
 }else{
  seller();
- setInterval(()=>{if(!userIsEditing())seller()},3000);
+ setInterval(()=>{if(!userIsEditing())seller()},5000);
 }
