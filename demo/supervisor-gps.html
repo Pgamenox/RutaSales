@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<title>RutaSales Supervisor GPS</title>
+<link rel="stylesheet" href="styles.css?v=6">
+</head>
+<body>
+<header><h1>RutaSales</h1><div class="sub">DEMO sincronizada · Supervisor · Evidencia GPS</div></header>
+<main>
+  <div class="card">
+    <b>Panel Supervisor</b>
+    <div class="small">Cada evidencia debe mostrar foto, GPS, precisión y hora servidor.</div>
+    <button id="refreshData" class="light" type="button">🔄 Actualizar datos</button>
+  </div>
+  <div class="grid">
+    <div class="card"><div class="small">Rutas</div><h2 id="kRoutes">0</h2></div>
+    <div class="card"><div class="small">Vendedores</div><h2 id="kSellers">0</h2></div>
+    <div class="card"><div class="small">Visitas</div><h2 id="kVisits">0</h2></div>
+    <div class="card"><div class="small">Contingencias</div><h2 id="kIncidents">0</h2></div>
+  </div>
+  <div class="card">
+    <b>Asignar visita</b>
+    <div class="row"><div><label>Ruta</label><select id="route"></select></div><div><label>Vendedor</label><select id="seller"></select></div></div>
+    <div class="row"><div><label>Cliente</label><input id="client" type="text" autocomplete="off"></div><div><label>Fecha</label><input id="date" type="date"></div></div>
+    <label>Dirección</label><input id="address" type="text" autocomplete="off">
+    <button id="saveVisit" type="button">Asignar visita</button>
+    <div id="saveMsg" class="small"></div>
+  </div>
+  <div class="card"><b>Visitas registradas</b><div id="visitsList">Cargando…</div></div>
+  <div class="card"><b>🚨 Contingencias</b><div id="incidentsList">Cargando…</div></div>
+</main>
+<script src="supervisor-gps.js?v=6"></script>
+</body>
+</html>
