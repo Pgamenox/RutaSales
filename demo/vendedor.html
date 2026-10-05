@@ -1,1 +1,38 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RutaSales Vendedor</title><link rel="stylesheet" href="styles.css?v=1"></head><body data-view="vendedor"><header><h1>RutaSales</h1><div class="sub">DEMO sincronizada · Vendedor</div></header><main id="app"><div class="card">Cargando…</div></main><div id="camModal" class="modal hidden"><div class="modalbox"><b>📷 Evidencia en vivo</b><div class="small">La foto y el GPS se capturan ahora.</div><video id="video" autoplay playsinline muted></video><button id="snapBtn">Tomar foto</button><button id="cancelCam" class="light">Cancelar</button></div></div><script src="app.js?v=9"></script></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<title>RutaSales Vendedor</title>
+<link rel="stylesheet" href="styles.css?v=10">
+</head>
+<body>
+<header><h1>RutaSales</h1><div class="sub">DEMO sincronizada · Vendedor</div></header>
+<main>
+  <div class="card">
+    <b>App Vendedor</b>
+    <label>Vendedor demo</label>
+    <select id="sellerPick"></select>
+    <button id="refreshSeller" type="button" class="light">🔄 Actualizar mis visitas</button>
+  </div>
+  <div class="grid">
+    <div class="card"><div class="small">Asignadas</div><h2 id="kAssigned">0</h2></div>
+    <div class="card"><div class="small">Pendientes</div><h2 id="kPending">0</h2></div>
+    <div class="card"><div class="small">Completadas</div><h2 id="kDone">0</h2></div>
+  </div>
+  <div class="card"><b>Mis visitas</b><div id="visitsList">Cargando…</div></div>
+  <div class="card"><b>Mis imprevistos</b><div id="incidentsList">Cargando…</div></div>
+</main>
+<div id="camModal" class="modal hidden">
+  <div class="modalbox">
+    <b>2️⃣ 📷 Evidencia en vivo</b>
+    <div id="camGpsStatus" class="small"></div>
+    <video id="video" autoplay playsinline muted></video>
+    <button id="snapBtn" type="button">Tomar foto y enviar</button>
+    <button id="cancelCam" type="button" class="light">Cancelar</button>
+  </div>
+</div>
+<script src="vendedor.js?v=10"></script>
+</body>
+</html>
