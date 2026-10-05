@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
-<header><h1>RutaSales</h1><div class="sub">DEMO sincronizada · Supervisor · VALIDACIÓN GPS v12</div></header>
+<header><h1>RutaSales</h1><div class="sub">DEMO sincronizada · Supervisor · VALIDACIÓN GPS v13</div></header>
 <main>
   <div class="card">
     <b>Panel Supervisor</b>
@@ -32,7 +32,7 @@
     </div>
     <div class="row">
       <div><label>Radio permitido (m)</label><input id="radius" type="number" min="20" value="100"></div>
-      <div><label>&nbsp;</label><button id="useCurrentGps" type="button" class="light">📍 Usar mi ubicación actual</button></div>
+      <div><label>Origen del punto esperado</label><div class="small" style="padding:10px;border:1px solid #d9e2ec;border-radius:9px;background:#f8fafc">Usa las coordenadas reales del negocio. No uses la ubicación del supervisor si el negocio está en otro lugar.</div></div>
     </div>
     <button id="saveVisit" type="button">Asignar visita</button>
     <div id="saveMsg" class="small"></div>
@@ -64,15 +64,6 @@ function renderVisit(v){
 async function refreshLists(){try{const [ss,rr,visits,incs]=await Promise.all([api("rs_sellers?select=*&order=name"),api("rs_routes?select=*&order=name"),api("rs_visits?select=*&order=created_at.desc"),api("rs_incidents?select=*&order=created_at.desc")]);sellers=ss;routes=rr;fillSelects();$("kRoutes").textContent=routes.length;$("kSellers").textContent=sellers.length;$("kVisits").textContent=visits.length;$("kIncidents").textContent=incs.filter(i=>!i.resolved).length; const inZone=visits.filter(v=>v.within_zone===true).length; const outZone=visits.filter(v=>v.within_zone===false).length; if($("kInZone"))$("kInZone").textContent=inZone; if($("kOutZone"))$("kOutZone").textContent=outZone;$("visitsList").innerHTML=visits.length?visits.map(renderVisit).join(""):'<div class="small">Sin visitas.</div>';$("incidentsList").innerHTML=incs.length?incs.map(i=>'<div class="visit"><b>'+e(i.incident_type)+'</b><div class="small">'+e(sellers.find(s=>s.id===i.seller_id)?.name)+' · GPS '+Number(i.lat).toFixed(6)+', '+Number(i.lng).toFixed(6)+' · ±'+Math.round(i.accuracy||0)+' m · '+new Date(i.captured_at).toLocaleString()+'</div><a href="https://www.google.com/maps?q='+encodeURIComponent(i.lat+','+i.lng)+'" target="_blank" rel="noopener"><button type="button" class="light">📍 Ver GPS de contingencia</button></a></div>').join(""):'<div class="small">Sin contingencias.</div>'}catch(err){$("saveMsg").textContent="Error: "+err.message}}
 $("date").value=today();
 $("refreshData").onclick=refreshLists;
-$("useCurrentGps").onclick=()=>{
- if(!navigator.geolocation)return $("saveMsg").textContent="Este navegador no tiene geolocalización.";
- $("saveMsg").textContent="Obteniendo ubicación actual…";
- navigator.geolocation.getCurrentPosition(p=>{
-   $("targetLat").value=p.coords.latitude.toFixed(6);
-   $("targetLng").value=p.coords.longitude.toFixed(6);
-   $("saveMsg").textContent="Punto esperado cargado · precisión ±"+Math.round(p.coords.accuracy||0)+" m";
- },err=>$("saveMsg").textContent="No se pudo obtener ubicación: "+err.message,{enableHighAccuracy:true,timeout:15000,maximumAge:0});
-};
 $("saveVisit").onclick=async()=>{
  const client=$("client").value.trim(),address=$("address").value.trim();
  if(!client||!address)return $("saveMsg").textContent="Falta cliente o dirección.";
