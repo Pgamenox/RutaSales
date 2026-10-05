@@ -26,12 +26,20 @@
     <div class="row"><div><label>Ruta</label><select id="route"></select></div><div><label>Vendedor</label><select id="seller"></select></div></div>
     <div class="row"><div><label>Cliente</label><input id="client" type="text" autocomplete="off"></div><div><label>Fecha</label><input id="date" type="date"></div></div>
     <label>Dirección</label><input id="address" type="text" autocomplete="off">
+    <div class="row">
+      <div><label>Latitud esperada</label><input id="targetLat" type="number" step="any" placeholder="25.123456"></div>
+      <div><label>Longitud esperada</label><input id="targetLng" type="number" step="any" placeholder="-100.123456"></div>
+    </div>
+    <div class="row">
+      <div><label>Radio permitido (m)</label><input id="radius" type="number" min="20" value="100"></div>
+      <div><label>&nbsp;</label><button id="useCurrentGps" type="button" class="light">📍 Usar mi ubicación actual</button></div>
+    </div>
     <button id="saveVisit" type="button">Asignar visita</button>
     <div id="saveMsg" class="small"></div>
   </div>
   <div class="card"><b>Visitas registradas</b><div id="visitsList">Cargando…</div></div>
   <div class="card"><b>🚨 Contingencias</b><div id="incidentsList">Cargando…</div></div>
 </main>
-<script src="supervisor.js?v=7"></script>
+<script src="supervisor.js?v=8"></script>
 </body>
 </html>
