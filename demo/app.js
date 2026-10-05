@@ -43,4 +43,16 @@ async function seller(){
 async function complete(id){try{const x=await evidence();await api("rs_visits?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"COMPLETADA",lat:x.g.lat,lng:x.g.lng,accuracy:x.g.accuracy,photo_data:x.p})},SEL,sellerId);alert("Visita enviada con GPS + cámara en vivo.");seller()}catch(err){}}
 async function incident(r){const type=prompt("Tipo de imprevisto");if(!type)return;const details=prompt("Descripción")||"";try{const x=await evidence();await api("rs_incidents",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({route_id:r,seller_id:sellerId,incident_type:type,details,lat:x.g.lat,lng:x.g.lng,accuracy:x.g.accuracy,photo_data:x.p})},SEL,sellerId);alert("Imprevisto enviado.");seller()}catch(err){}}
 window.complete=complete;window.incident=incident;
-if(VIEW==="supervisor"){supervisor();setInterval(supervisor,3000)}else{seller();setInterval(seller,3000)}
+function userIsEditing(){
+ const a=document.activeElement;
+ if(a && ["INPUT","TEXTAREA","SELECT"].includes(a.tagName)) return true;
+ const modal=document.getElementById("camModal");
+ return !!(modal && !modal.classList.contains("hidden"));
+}
+if(VIEW==="supervisor"){
+ supervisor();
+ setInterval(()=>{if(!userIsEditing())supervisor()},3000);
+}else{
+ seller();
+ setInterval(()=>{if(!userIsEditing())seller()},3000);
+}
