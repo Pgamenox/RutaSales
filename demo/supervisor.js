@@ -27,7 +27,14 @@ async function refreshLists(){
   $("kSellers").textContent=sellers.length;
   $("kVisits").textContent=visits.length;
   $("kIncidents").textContent=incs.filter(i=>!i.resolved).length;
-  $("visitsList").innerHTML=visits.length?visits.map(v=>'<div class="visit"><b>'+e(v.customer_name)+'</b> <span class="badge">'+e(v.status)+'</span><div class="small">'+e(routes.find(r=>r.id===v.route_id)?.name)+' · '+e(sellers.find(s=>s.id===v.seller_id)?.name)+' · '+e(v.visit_date)+'</div><div>'+e(v.address)+'</div>'+(v.completed_at?'<div class="ok">Evidencia recibida · '+new Date(v.completed_at).toLocaleString()+'</div>':'')+(v.photo_data?'<img class="evidence" src="'+v.photo_data+'">':'')+'</div>').join(""):'<div class="small">Sin visitas.</div>';
+  $("visitsList").innerHTML=visits.length?visits.map(v=>{
+  const routeName=e(routes.find(r=>r.id===v.route_id)?.name);
+  const sellerName=e(sellers.find(s=>s.id===v.seller_id)?.name);
+  const hasGps=Number.isFinite(v.lat)&&Number.isFinite(v.lng);
+  const gpsBlock=hasGps?'<div class="small"><b>GPS:</b> '+Number(v.lat).toFixed(6)+', '+Number(v.lng).toFixed(6)+' · precisión ±'+Math.round(v.accuracy||0)+' m</div><a href="https://www.google.com/maps?q='+encodeURIComponent(v.lat+','+v.lng)+'" target="_blank" rel="noopener"><button type="button" class="light">📍 Ver ubicación GPS</button></a>':'<div class="small danger">Sin GPS registrado.</div>';
+  const evidence=v.photo_data?'<div class="ok">✅ Evidencia: '+e(v.evidence_source||"CÁMARA EN VIVO")+'</div><img class="evidence" src="'+v.photo_data+'">'+gpsBlock+(v.completed_at?'<div class="small"><b>Hora servidor:</b> '+new Date(v.completed_at).toLocaleString()+'</div>':''):'<div class="small">Aún sin evidencia.</div>';
+  return '<div class="visit"><b>'+e(v.customer_name)+'</b> <span class="badge">'+e(v.status)+'</span><div class="small">'+routeName+' · '+sellerName+' · '+e(v.visit_date)+'</div><div>'+e(v.address)+'</div>'+evidence+'</div>';
+}).join(""):'<div class="small">Sin visitas.</div>';
   $("incidentsList").innerHTML=incs.length?incs.map(i=>'<div class="visit"><b>'+e(i.incident_type)+'</b><div class="small">'+e(sellers.find(s=>s.id===i.seller_id)?.name)+' · '+new Date(i.captured_at).toLocaleString()+' · GPS ±'+Math.round(i.accuracy||0)+' m</div><div>'+e(i.details||"")+'</div></div>').join(""):'<div class="small">Sin contingencias.</div>';
  }catch(err){$("saveMsg").textContent="Error al actualizar: "+err.message}
 }
