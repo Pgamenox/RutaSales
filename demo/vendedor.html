@@ -8,13 +8,14 @@
 <link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
-<header><h1>RutaSales</h1><div class="sub">BETA MUESTRA 1.1 · Vendedor</div></header>
+<header><h1>RutaSales</h1><div class="sub">BETA MUESTRA 1.3 · Vendedor</div></header>
 <main>
   <div class="card">
     <b>App Vendedor</b>
     <label>Vendedor demo</label>
     <select id="sellerPick"></select>
     <button id="refreshSeller" type="button" class="light">🔄 Actualizar mis visitas</button>
+    <button id="openCustomerProposal" type="button">➕ Registrar negocio nuevo</button>
   </div>
   <div class="grid">
     <div class="card"><div class="small">Asignadas</div><h2 id="kAssigned">0</h2></div>
@@ -22,8 +23,22 @@
     <div class="card"><div class="small">Completadas</div><h2 id="kDone">0</h2></div>
   </div>
   <div class="card"><b>Mis visitas</b><div id="visitsList">Cargando…</div></div>
-  <div class="card"><b>Mis imprevistos</b><div id="incidentsList">Cargando…</div></div>
+  <div class="card"><b>Mis imprevistos y altas</b><div id="incidentsList">Cargando…</div></div>
 </main>
+<div id="customerProposalModal" class="modal hidden">
+  <div class="modalbox">
+    <b>➕ Registrar negocio nuevo</b>
+    <label>Nombre del negocio</label>
+    <input id="proposalName" type="text" placeholder="Ej. Abarrotes Lupita">
+    <label>Referencia o dirección</label>
+    <textarea id="proposalAddress" rows="3" placeholder="Calle, número o referencia visible"></textarea>
+    <label>Ruta donde lo encontraste</label>
+    <select id="proposalRoute"></select>
+    <div class="small">La ubicación se tomará del GPS del teléfono y la foto deberá capturarse en ese momento.</div>
+    <button id="proposalContinue" type="button">📍 Obtener GPS y tomar foto</button>
+    <button id="proposalCancel" type="button" class="light">Cancelar</button>
+  </div>
+</div>
 <div id="incidentModal" class="modal hidden">
   <div class="modalbox">
     <b>🚨 Reportar imprevisto</b>
@@ -51,6 +66,6 @@
     <button id="cancelCam" type="button" class="light">Cancelar</button>
   </div>
 </div>
-<script src="vendedor.js?v=11"></script>
+<script src="vendedor.js?v=12"></script>
 </body>
 </html>
