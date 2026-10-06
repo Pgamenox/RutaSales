@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
-<header><h1>RutaSales</h1><div class="sub">BETA MUESTRA 1.2 · Supervisor · CLIENTES GPS v16</div></header>
+<header><h1>RutaSales</h1><div class="sub">BETA MUESTRA 1.3 · Supervisor · ALTAS EN CAMPO v17</div></header>
 <main>
   <div class="card">
     <b>Panel Supervisor</b>
@@ -30,6 +30,11 @@
     <div id="saveMsg" class="small"></div>
   </div>
   <div class="card">
+  <b>🆕 Negocios propuestos por vendedores</b>
+  <div class="small" style="margin:6px 0 10px">Revisa GPS, foto y referencia antes de convertirlos en clientes oficiales.</div>
+  <div id="proposalList">Cargando…</div>
+</div>
+<div class="card">
   <b>Catálogo de clientes</b>
   <div class="small" style="margin:6px 0 10px">Guarda una vez el negocio con su GPS real. Las visitas futuras heredarán automáticamente ese punto.</div>
   <div class="row"><div><label>Nombre</label><input id="newCustomerName" type="text"></div><div><label>Dirección</label><input id="newCustomerAddress" type="text"></div></div>
@@ -99,13 +104,29 @@ async function refreshLists(){try{
   api("rs_reassignments?select=*&order=created_at.desc")
  ]);
  sellers=ss;routes=rr;customers=cc;allVisits=visits;fillSelects();
- $("kRoutes").textContent=routes.length;$("kSellers").textContent=sellers.length;$("kCustomers").textContent=customers.length;$("kVisits").textContent=visits.length;$("kIncidents").textContent=incs.filter(i=>!i.resolved).length;
+ $("kRoutes").textContent=routes.length;$("kSellers").textContent=sellers.length;$("kCustomers").textContent=customers.length;$("kVisits").textContent=visits.length;$("kIncidents").textContent=incs.filter(i=>i.incident_type!=="NUEVO CLIENTE"&&!i.resolved).length;
  const valid=visits.filter(v=>category(v)==="valid").length,review=visits.filter(v=>category(v)==="review").length,out=visits.filter(v=>category(v)==="out").length;
  $("kValid").textContent=valid;$("kReview").textContent=review;$("kOutZone").textContent=out;
  renderFilteredVisits();
+ const proposals=incs.filter(i=>i.incident_type==="NUEVO CLIENTE");
+ $("proposalList").innerHTML=proposals.length?proposals.map(i=>{
+   const sellerName=e(sellers.find(s=>s.id===i.seller_id)?.name||"—");
+   const routeName=e(routes.find(r=>r.id===i.route_id)?.name||"—");
+   const photo=i.photo_data?'<img class="evidence" src="'+i.photo_data+'">':'';
+   const gps='<div class="small"><b>GPS capturado:</b> '+Number(i.lat).toFixed(6)+', '+Number(i.lng).toFixed(6)+' · precisión ±'+Math.round(i.accuracy||0)+' m</div><a href="https://www.google.com/maps?q='+encodeURIComponent(i.lat+','+i.lng)+'" target="_blank" rel="noopener"><button type="button" class="light">📍 Ver en Google Maps</button></a>';
+   let actions='';
+   if(!i.resolved){
+     actions='<div style="margin-top:10px"><button type="button" onclick="approveProposal(\''+i.id+'\')">✅ Aprobar y guardar cliente</button><button type="button" class="light" onclick="rejectProposal(\''+i.id+'\')">❌ Rechazar</button></div>';
+   }else{
+     actions='<div class="'+(i.resolution_note==="APROBADO"?"ok":"danger")+'">'+(i.resolution_note==="APROBADO"?"✅ APROBADO":"❌ RECHAZADO")+'</div>';
+   }
+   return '<div class="visit"><b>'+e(i.proposal_name||"Negocio nuevo")+'</b> <span class="badge">'+(i.resolved?e(i.resolution_note||"REVISADO"):"PENDIENTE")+'</span><div class="small">'+sellerName+' · '+routeName+' · '+new Date(i.captured_at).toLocaleString()+'</div><div>'+e(i.proposal_address||"Sin referencia")+'</div>'+photo+gps+actions+'</div>';
+ }).join(""):'<div class="small">No hay negocios pendientes de revisión.</div>';
+
  $("customerList").innerHTML=customers.length?customers.map(x=>'<div class="visit"><b>'+e(x.name)+'</b><div class="small">'+e(x.address)+'</div><div class="small">GPS '+Number(x.lat).toFixed(6)+', '+Number(x.lng).toFixed(6)+' · radio '+x.allowed_radius_m+' m</div></div>').join(""):'<div class="small">Sin clientes guardados.</div>';
 
- $("incidentsList").innerHTML=incs.length?incs.map(i=>{
+ const normalIncidents=incs.filter(i=>i.incident_type!=="NUEVO CLIENTE");
+ $("incidentsList").innerHTML=normalIncidents.length?normalIncidents.map(i=>{
    const sellerName=e(sellers.find(s=>s.id===i.seller_id)?.name);
    const routeName=e(routes.find(r=>r.id===i.route_id)?.name);
    const pending=visits.filter(v=>v.seller_id===i.seller_id&&v.route_id===i.route_id&&v.status==="PENDIENTE").length;
@@ -121,6 +142,25 @@ async function refreshLists(){try{
    return '<div class="visit"><b>'+route+'</b><div>'+from+' → <b>'+to+'</b></div><div class="small">'+x.pending_count+' visita(s) pendiente(s) · '+new Date(x.created_at).toLocaleString()+'</div><div class="small">'+e(x.reason||"")+'</div></div>';
  }).join(""):'<div class="small">Sin reasignaciones.</div>';
 }catch(err){$("saveMsg").textContent="Error: "+err.message}}
+async function approveProposal(id){
+ try{
+  const rows=await api("rs_incidents?id=eq."+id+"&select=*");
+  const i=rows&&rows[0]; if(!i)return alert("No se encontró la propuesta.");
+  const created=await api("rs_customers",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({name:i.proposal_name,address:i.proposal_address||"Sin referencia",lat:i.lat,lng:i.lng,allowed_radius_m:100,active:true})});
+  const customerId=created&&created[0]?created[0].id:null;
+  await api("rs_incidents?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({resolved:true,resolved_at:new Date().toISOString(),resolution_note:"APROBADO",approved_customer_id:customerId})});
+  alert("Negocio aprobado y agregado al catálogo de clientes.");
+  await refreshLists();
+ }catch(err){alert("No se pudo aprobar el negocio: "+err.message)}
+}
+async function rejectProposal(id){
+ if(!confirm("¿Rechazar esta propuesta de negocio?"))return;
+ try{
+  await api("rs_incidents?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({resolved:true,resolved_at:new Date().toISOString(),resolution_note:"RECHAZADO"})});
+  await refreshLists();
+ }catch(err){alert("No se pudo rechazar la propuesta: "+err.message)}
+}
+window.approveProposal=approveProposal;window.rejectProposal=rejectProposal;
 async function resolveIncident(id){
  try{
   await api("rs_incidents?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({resolved:true,resolved_at:new Date().toISOString(),resolution_note:"Atendido sin reasignación"})});
