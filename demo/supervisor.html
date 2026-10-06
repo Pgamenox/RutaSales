@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
-<header><h1>RutaSales</h1><div class="sub">BETA MUESTRA 1.1 · Supervisor · VALIDACIÓN GPS v15</div></header>
+<header><h1>RutaSales</h1><div class="sub">BETA MUESTRA 1.2 · Supervisor · CLIENTES GPS v16</div></header>
 <main>
   <div class="card">
     <b>Panel Supervisor</b>
@@ -17,27 +17,28 @@
   </div>
   <div class="grid">
     <div class="card"><div class="small">Rutas</div><h2 id="kRoutes">0</h2></div>
-    <div class="card"><div class="small">Vendedores</div><h2 id="kSellers">0</h2></div>
+    <div class="card"><div class="small">Vendedores</div><h2 id="kSellers">0</h2></div><div class="card"><div class="small">Clientes</div><h2 id="kCustomers">0</h2></div>
     <div class="card"><div class="small">Visitas</div><h2 id="kVisits">0</h2></div>
     <div class="card"><div class="small">Contingencias</div><h2 id="kIncidents">0</h2></div><div class="card"><div class="small">Visitas válidas</div><h2 id="kValid">0</h2></div><div class="card"><div class="small">Revisar</div><h2 id="kReview">0</h2></div><div class="card"><div class="small">Fuera de zona</div><h2 id="kOutZone">0</h2></div>
   </div>
   <div class="card">
     <b>Asignar visita</b>
     <div class="row"><div><label>Ruta</label><select id="route"></select></div><div><label>Vendedor</label><select id="seller"></select></div></div>
-    <div class="row"><div><label>Cliente</label><input id="client" type="text" autocomplete="off"></div><div><label>Fecha</label><input id="date" type="date"></div></div>
-    <label>Dirección</label><input id="address" type="text" autocomplete="off">
-    <div class="row">
-      <div><label>Latitud esperada</label><input id="targetLat" type="number" step="any" placeholder="25.123456"></div>
-      <div><label>Longitud esperada</label><input id="targetLng" type="number" step="any" placeholder="-100.123456"></div>
-    </div>
-    <div class="row">
-      <div><label>Radio permitido (m)</label><input id="radius" type="number" min="20" value="100"></div>
-      <div><label>Origen del punto esperado</label><div class="small" style="padding:10px;border:1px solid #d9e2ec;border-radius:9px;background:#f8fafc">Usa las coordenadas reales del negocio. No uses la ubicación del supervisor si el negocio está en otro lugar.</div></div>
-    </div>
+    <div class="row"><div><label>Cliente del catálogo</label><select id="customer"></select></div><div><label>Fecha</label><input id="date" type="date"></div></div>
+    <div id="customerInfo" class="small" style="padding:10px;border:1px solid #d9e2ec;border-radius:9px;background:#f8fafc">Selecciona un cliente.</div>
     <button id="saveVisit" type="button">Asignar visita</button>
     <div id="saveMsg" class="small"></div>
   </div>
   <div class="card">
+  <b>Catálogo de clientes</b>
+  <div class="small" style="margin:6px 0 10px">Guarda una vez el negocio con su GPS real. Las visitas futuras heredarán automáticamente ese punto.</div>
+  <div class="row"><div><label>Nombre</label><input id="newCustomerName" type="text"></div><div><label>Dirección</label><input id="newCustomerAddress" type="text"></div></div>
+  <div class="row"><div><label>Latitud</label><input id="newCustomerLat" type="number" step="any"></div><div><label>Longitud</label><input id="newCustomerLng" type="number" step="any"></div></div>
+  <div class="row"><div><label>Radio permitido (m)</label><input id="newCustomerRadius" type="number" min="20" value="100"></div><div><label>&nbsp;</label><button id="saveCustomer" type="button">Guardar cliente</button></div></div>
+  <div id="customerMsg" class="small"></div>
+  <div id="customerList" style="margin-top:10px"></div>
+</div>
+<div class="card">
   <b>Visitas registradas</b>
   <div class="small" style="margin:6px 0 10px">Regla comercial: 0–100 m válida · 101–250 m revisar · más de 250 m fuera de zona.</div>
   <div class="row" style="margin-bottom:10px">
@@ -60,8 +61,21 @@ const H={apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json
 async function api(path,opt={}){opt.headers={...H,...(opt.headers||{})};const r=await fetch(BASE+path,opt);if(!r.ok)throw new Error(await r.text());const t=await r.text();return t?JSON.parse(t):null}
 function e(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function today(){return new Date().toISOString().slice(0,10)}
-let sellers=[],routes=[],allVisits=[],currentFilter="all";
-function fillSelects(){const rv=$("route").value,sv=$("seller").value;$("route").innerHTML=routes.map(r=>'<option value="'+r.id+'">'+e(r.name)+'</option>').join("");$("seller").innerHTML=sellers.map(s=>'<option value="'+s.id+'">'+e(s.name)+'</option>').join("");if(rv&&routes.some(r=>r.id===rv))$("route").value=rv;if(sv&&sellers.some(s=>s.id===sv))$("seller").value=sv}
+let sellers=[],routes=[],customers=[],allVisits=[],currentFilter="all";
+function fillSelects(){
+ const rv=$("route").value,sv=$("seller").value,cv=$("customer").value;
+ $("route").innerHTML=routes.map(r=>'<option value="'+r.id+'">'+e(r.name)+'</option>').join("");
+ $("seller").innerHTML=sellers.map(s=>'<option value="'+s.id+'">'+e(s.name)+'</option>').join("");
+ $("customer").innerHTML=customers.length?customers.map(x=>'<option value="'+x.id+'">'+e(x.name)+'</option>').join(""):'<option value="">Sin clientes</option>';
+ if(rv&&routes.some(r=>r.id===rv))$("route").value=rv;
+ if(sv&&sellers.some(s=>s.id===sv))$("seller").value=sv;
+ if(cv&&customers.some(x=>x.id===cv))$("customer").value=cv;
+ updateCustomerInfo();
+}
+function updateCustomerInfo(){
+ const x=customers.find(x=>x.id===$("customer").value);
+ $("customerInfo").innerHTML=x?'<b>'+e(x.name)+'</b><div>'+e(x.address)+'</div><div>GPS esperado: '+Number(x.lat).toFixed(6)+', '+Number(x.lng).toFixed(6)+' · radio '+x.allowed_radius_m+' m</div>':'Selecciona un cliente.';
+}
 function renderVisit(v){
  const r=e(routes.find(x=>x.id===v.route_id)?.name),s=e(sellers.find(x=>x.id===v.seller_id)?.name);
  const has=Number.isFinite(Number(v.lat))&&Number.isFinite(Number(v.lng));
@@ -76,18 +90,20 @@ function renderVisit(v){
 function category(v){const d=Number(v.distance_m);if(!Number.isFinite(d))return "none";if(d<=100)return "valid";if(d<=250)return "review";return "out"}
 function renderFilteredVisits(){const list=currentFilter==="all"?allVisits:allVisits.filter(v=>category(v)===currentFilter);$("visitsList").innerHTML=list.length?list.map(renderVisit).join(""):'<div class="small">No hay visitas en este filtro.</div>'}
 async function refreshLists(){try{
- const [ss,rr,visits,incs,reassignments]=await Promise.all([
+ const [ss,rr,cc,visits,incs,reassignments]=await Promise.all([
   api("rs_sellers?select=*&order=name"),
   api("rs_routes?select=*&order=name"),
+  api("rs_customers?select=*&active=eq.true&order=name"),
   api("rs_visits?select=*&order=created_at.desc"),
   api("rs_incidents?select=*&order=created_at.desc"),
   api("rs_reassignments?select=*&order=created_at.desc")
  ]);
- sellers=ss;routes=rr;allVisits=visits;fillSelects();
- $("kRoutes").textContent=routes.length;$("kSellers").textContent=sellers.length;$("kVisits").textContent=visits.length;$("kIncidents").textContent=incs.filter(i=>!i.resolved).length;
+ sellers=ss;routes=rr;customers=cc;allVisits=visits;fillSelects();
+ $("kRoutes").textContent=routes.length;$("kSellers").textContent=sellers.length;$("kCustomers").textContent=customers.length;$("kVisits").textContent=visits.length;$("kIncidents").textContent=incs.filter(i=>!i.resolved).length;
  const valid=visits.filter(v=>category(v)==="valid").length,review=visits.filter(v=>category(v)==="review").length,out=visits.filter(v=>category(v)==="out").length;
  $("kValid").textContent=valid;$("kReview").textContent=review;$("kOutZone").textContent=out;
  renderFilteredVisits();
+ $("customerList").innerHTML=customers.length?customers.map(x=>'<div class="visit"><b>'+e(x.name)+'</b><div class="small">'+e(x.address)+'</div><div class="small">GPS '+Number(x.lat).toFixed(6)+', '+Number(x.lng).toFixed(6)+' · radio '+x.allowed_radius_m+' m</div></div>').join(""):'<div class="small">Sin clientes guardados.</div>';
 
  $("incidentsList").innerHTML=incs.length?incs.map(i=>{
    const sellerName=e(sellers.find(s=>s.id===i.seller_id)?.name);
@@ -129,18 +145,31 @@ async function reassignIncident(id,routeId,fromSellerId){
 window.resolveIncident=resolveIncident;window.reassignIncident=reassignIncident;
 $("date").value=today();
 $("refreshData").onclick=refreshLists;document.querySelectorAll(".zoneFilter").forEach(btn=>btn.addEventListener("click",()=>{currentFilter=btn.dataset.filter;renderFilteredVisits();}));
+$("customer").onchange=updateCustomerInfo;
+$("saveCustomer").onclick=async()=>{
+ const name=$("newCustomerName").value.trim(),address=$("newCustomerAddress").value.trim();
+ const lat=Number($("newCustomerLat").value),lng=Number($("newCustomerLng").value),radius=Math.max(20,Number($("newCustomerRadius").value)||100);
+ if(!name||!address||!Number.isFinite(lat)||!Number.isFinite(lng))return $("customerMsg").textContent="Completa nombre, dirección, latitud y longitud.";
+ try{
+  $("customerMsg").textContent="Guardando cliente…";
+  await api("rs_customers",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({name,address,lat,lng,allowed_radius_m:radius})});
+  $("newCustomerName").value="";$("newCustomerAddress").value="";$("newCustomerLat").value="";$("newCustomerLng").value="";
+  $("customerMsg").textContent="Cliente guardado.";
+  await refreshLists();
+ }catch(err){$("customerMsg").textContent="No se pudo guardar: "+err.message}
+};
 $("saveVisit").onclick=async()=>{
- const client=$("client").value.trim(),address=$("address").value.trim();
- if(!client||!address)return $("saveMsg").textContent="Falta cliente o dirección.";
- const lat=$("targetLat").value.trim(),lng=$("targetLng").value.trim(),radius=Math.max(20,Number($("radius").value)||100);
- const payload={route_id:$("route").value,seller_id:$("seller").value,customer_name:client,address,visit_date:$("date").value,status:"PENDIENTE",allowed_radius_m:radius};
- if(lat!==""&&lng!==""){payload.target_lat=Number(lat);payload.target_lng=Number(lng)}
+ const x=customers.find(x=>x.id===$("customer").value);
+ if(!x)return $("saveMsg").textContent="Selecciona un cliente del catálogo.";
+ const payload={route_id:$("route").value,seller_id:$("seller").value,customer_id:x.id,customer_name:x.name,address:x.address,visit_date:$("date").value,status:"PENDIENTE",target_lat:x.lat,target_lng:x.lng,allowed_radius_m:x.allowed_radius_m};
  try{
    $("saveMsg").textContent="Guardando…";
    await api("rs_visits",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(payload)});
-   $("client").value="";$("address").value="";$("targetLat").value="";$("targetLng").value="";
-   $("saveMsg").textContent="Visita asignada.";
+   $("saveMsg").textContent="Visita asignada con GPS del cliente.";
    await refreshLists();
+ }catch(err){$("saveMsg").textContent="No se pudo guardar: "+err.message}
+};
+refreshLists();
  }catch(err){$("saveMsg").textContent="No se pudo guardar: "+err.message}
 };
 refreshLists();
