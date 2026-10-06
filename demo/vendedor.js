@@ -3,7 +3,7 @@ const KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6
 const SEL="SSA25wyzucK04-nBYw9a47ixCrMBsbbo";
 const $=id=>document.getElementById(id);
 let sellerId=localStorage.getItem("rs_demo_seller")||"0c2bf2e3-a002-4332-b9f2-e9802d4af315";
-let sellers=[],routes=[],pendingGps={},stream=null,currentVisitId=null;
+let sellers=[],routes=[],pendingGps={},stream=null,currentVisitId=null,currentMode="visit",incidentRouteId=null,incidentGps=null;
 function h(extra={}){return {apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json","x-rutasales-token":SEL,"x-rutasales-seller":sellerId,...extra}}
 async function api(path,opt={}){opt.headers=h(opt.headers||{});const r=await fetch(BASE+path,opt);if(!r.ok)throw new Error(await r.text());const t=await r.text();return t?JSON.parse(t):null}
 function e(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
@@ -33,6 +33,7 @@ async function load(){
       '<button type="button" onclick="captureGps(\''+v.id+'\')">1️⃣ 📍 Obtener mi ubicación actual</button>'+
       '<div id="gps_'+v.id+'">'+(g?gpsHtml(g):'<div class="small">GPS pendiente.</div>')+'</div>'+
       '<button type="button" id="photo_'+v.id+'" onclick="openCameraForVisit(\''+v.id+'\')" '+(g?'':'disabled')+'>2️⃣ 📷 Tomar foto y enviar evidencia</button>'+
+      '<button type="button" class="dark" onclick="openIncident(\''+v.route_id+'\')">🚨 Reportar imprevisto</button>'+
       '</div>';
   }).join(""):'<div class="small">Sin visitas asignadas.</div>';
   $("incidentsList").innerHTML=incs.length?incs.map(i=>'<div class="visit"><b>'+e(i.incident_type)+'</b><div class="small">'+new Date(i.captured_at).toLocaleString()+' · GPS ±'+Math.round(i.accuracy||0)+' m</div></div>').join(""):'<div class="small">Sin imprevistos.</div>';
@@ -51,8 +52,8 @@ async function openCameraForVisit(id){
  const g=pendingGps[id];
  if(!g)return alert("Primero pulsa Obtener mi ubicación actual.");
  if(Date.now()-g.capturedAt>120000){delete pendingGps[id];await load();return alert("El GPS venció. Obtén tu ubicación nuevamente.");}
- currentVisitId=id;
- $("camGpsStatus").innerHTML=gpsHtml(g);
+ currentMode="visit"; currentVisitId=id;
+ $("camTitle").textContent="2️⃣ 📷 Evidencia de visita"; $("camGpsStatus").innerHTML=gpsHtml(g);
  try{
   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
   $("video").srcObject=stream;
@@ -62,19 +63,49 @@ async function openCameraForVisit(id){
 function closeCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$("video").srcObject=null;$("camModal").classList.add("hidden");currentVisitId=null}
 $("cancelCam").onclick=closeCamera;
 $("snapBtn").onclick=async()=>{
- const id=currentVisitId,g=pendingGps[id];
- if(!id||!g)return;
- if(Date.now()-g.capturedAt>120000){closeCamera();delete pendingGps[id];await load();return alert("El GPS venció. Repite el paso 1.");}
  const v=$("video");if(!v.videoWidth)return alert("La cámara aún no está lista.");
- const c=document.createElement("canvas"),w=Math.min(640,v.videoWidth),hh=Math.round(v.videoHeight*(w/v.videoWidth));
- c.width=w;c.height=hh;c.getContext("2d").drawImage(v,0,0,w,hh);
- const p=c.toDataURL("image/jpeg",.56);
+ const canvas=document.createElement("canvas"),w=Math.min(640,v.videoWidth),hh=Math.round(v.videoHeight*(w/v.videoWidth));
+ canvas.width=w;canvas.height=hh;canvas.getContext("2d").drawImage(v,0,0,w,hh);
+ const p=canvas.toDataURL("image/jpeg",.56);
+
+ if(currentMode==="visit"){
+   const id=currentVisitId,g=pendingGps[id];
+   if(!id||!g)return;
+   if(Date.now()-g.capturedAt>120000){closeCamera();delete pendingGps[id];await load();return alert("El GPS venció. Repite el paso 1.");}
+   try{
+    await api("rs_visits?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"COMPLETADA",lat:g.lat,lng:g.lng,accuracy:g.accuracy,photo_data:p,evidence_source:"LIVE_CAMERA",device_captured_at:new Date().toISOString()})});
+    delete pendingGps[id];closeCamera();alert("Visita enviada con GPS + cámara en vivo.");await load();
+   }catch(err){alert("No se pudo enviar la evidencia: "+err.message)}
+ }else{
+   const g=incidentGps;
+   if(!incidentRouteId||!g)return;
+   if(Date.now()-g.capturedAt>120000){closeCamera();return alert("El GPS del imprevisto venció. Repórtalo nuevamente.");}
+   try{
+     await api("rs_incidents",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({
+       route_id:incidentRouteId,
+       seller_id:sellerId,
+       incident_type:$("incidentType").value,
+       details:$("incidentDetails").value.trim(),
+       lat:g.lat,lng:g.lng,accuracy:g.accuracy,photo_data:p,resolved:false
+     })});
+     closeCamera(); $("incidentModal").classList.add("hidden"); $("incidentDetails").value=""; incidentRouteId=null; incidentGps=null;
+     alert("Imprevisto enviado al supervisor con GPS + foto."); await load();
+   }catch(err){alert("No se pudo enviar el imprevisto: "+err.message)}
+ }
+};
+function openIncident(routeId){incidentRouteId=routeId;$("incidentModal").classList.remove("hidden")}
+$("incidentCancel").onclick=()=>{$("incidentModal").classList.add("hidden");incidentRouteId=null;$("incidentDetails").value=""};
+$("incidentContinue").onclick=async()=>{
  try{
-  await api("rs_visits?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"COMPLETADA",lat:g.lat,lng:g.lng,accuracy:g.accuracy,photo_data:p,evidence_source:"LIVE_CAMERA",device_captured_at:new Date().toISOString()})});
-  delete pendingGps[id];closeCamera();alert("Visita enviada con GPS + cámara en vivo.");await load();
- }catch(err){alert("No se pudo enviar la evidencia: "+err.message)}
+   const g=await geo();
+   if(g.accuracy>150)return alert("GPS con baja precisión: "+Math.round(g.accuracy)+" m. Intenta de nuevo.");
+   incidentGps=g; currentMode="incident"; currentVisitId=null;
+   $("camTitle").textContent="🚨 Evidencia del imprevisto"; $("camGpsStatus").innerHTML=gpsHtml(g);
+   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+   $("video").srcObject=stream; $("incidentModal").classList.add("hidden"); $("camModal").classList.remove("hidden");
+ }catch(err){alert("No se pudo obtener GPS/cámara: "+err.message)}
 };
 $("sellerPick").onchange=async ev=>{sellerId=ev.target.value;localStorage.setItem("rs_demo_seller",sellerId);pendingGps={};await load()};
 $("refreshSeller").onclick=load;
-window.captureGps=captureGps;window.openCameraForVisit=openCameraForVisit;
+window.captureGps=captureGps;window.openCameraForVisit=openCameraForVisit;window.openIncident=openIncident;
 load();
