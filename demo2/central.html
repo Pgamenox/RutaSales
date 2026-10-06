@@ -1,0 +1,40 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RutaSales Central</title><link rel="stylesheet" href="../demo/styles.css?v=10"></head><body>
+<header><h1>RutaSales</h1><div class="sub">BETA 2.0 · CENTRAL</div></header><main>
+<div class="card"><b id="welcome">Central</b><button id="refresh" class="light">🔄 Actualizar</button><button id="logout" class="light">Cerrar sesión</button></div>
+<div class="grid"><div class="card"><div class="small">Supervisores</div><h2 id="kSup">0</h2></div><div class="card"><div class="small">Vendedores</div><h2 id="kSell">0</h2></div><div class="card"><div class="small">Rutas</div><h2 id="kRoutes">0</h2></div><div class="card"><div class="small">Visitas</div><h2 id="kVisits">0</h2></div></div>
+<div class="card"><b>Crear usuario</b><div class="row"><div><label>Nombre</label><input id="newName"></div><div><label>Correo</label><input id="newEmail" type="email"></div></div>
+<div class="row"><div><label>Contraseña inicial</label><input id="newPass" type="password"></div><div><label>Rol</label><select id="newRole"><option>SUPERVISOR</option><option>VENDEDOR</option></select></div></div>
+<div id="supWrap" style="display:none"><label>Supervisor del vendedor</label><select id="newSupervisor"></select></div>
+<button id="createUser">Crear usuario</button><div id="createMsg" class="small"></div></div>
+<div class="card"><b>Usuarios</b><div id="users">Cargando…</div></div>
+<div class="card"><b>Asignar rutas a supervisor</b><div id="routes">Cargando…</div></div>
+</main><script type="module">
+import {supabase,$,esc,requireRole,logout,URL,KEY} from "./common.js";
+let session,account,accounts=[],routes=[];
+async function load(){
+ const x=await requireRole("CENTRAL"); if(!x)return; session=x.session;account=x.account;$("welcome").textContent="Central · "+account.full_name;
+ const [{data:a},{data:r},{data:v}]=await Promise.all([
+  supabase.from("rs_accounts").select("*").order("created_at"),
+  supabase.from("rs_routes").select("*").order("name"),
+  supabase.from("rs_visits").select("id")
+ ]);
+ accounts=a||[];routes=r||[];
+ const sups=accounts.filter(x=>x.role==="SUPERVISOR"&&x.active),sells=accounts.filter(x=>x.role==="VENDEDOR"&&x.active);
+ $("kSup").textContent=sups.length;$("kSell").textContent=sells.length;$("kRoutes").textContent=routes.length;$("kVisits").textContent=(v||[]).length;
+ $("newSupervisor").innerHTML=sups.map(s=>'<option value="'+s.user_id+'">'+esc(s.full_name)+'</option>').join("");
+ $("users").innerHTML=accounts.map(x=>'<div class="visit"><b>'+esc(x.full_name)+'</b> <span class="badge">'+x.role+'</span><div class="small">'+(x.active?"ACTIVO":"INACTIVO")+'</div></div>').join("")||'<div class="small">Sin usuarios.</div>';
+ $("routes").innerHTML=routes.map(r=>'<div class="visit"><b>'+esc(r.name)+'</b><select id="route_'+r.id+'"><option value="">Sin supervisor</option>'+sups.map(s=>'<option value="'+s.user_id+'" '+(r.supervisor_user_id===s.user_id?"selected":"")+'>'+esc(s.full_name)+'</option>').join("")+'</select><button onclick="assignRoute(\''+r.id+'\')">Guardar asignación</button></div>').join("");
+}
+$("newRole").onchange=()=>{$("supWrap").style.display=$("newRole").value==="VENDEDOR"?"block":"none"};
+$("createUser").onclick=async()=>{
+ $("createMsg").textContent="Creando…";
+ const payload={full_name:$("newName").value.trim(),email:$("newEmail").value.trim(),password:$("newPass").value,role:$("newRole").value};
+ if(payload.role==="VENDEDOR")payload.supervisor_user_id=$("newSupervisor").value||null;
+ const r=await fetch(URL+"/functions/v1/rutasales-admin-users",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY,Authorization:"Bearer "+session.access_token},body:JSON.stringify(payload)});
+ const j=await r.json(); if(!r.ok){$("createMsg").textContent=j.error||"Error";return}
+ $("createMsg").textContent="Usuario creado."; $("newName").value="";$("newEmail").value="";$("newPass").value="";await load();
+};
+window.assignRoute=async id=>{const val=$("route_"+id).value||null;const {error}=await supabase.from("rs_routes").update({supervisor_user_id:val}).eq("id",id);if(error)alert(error.message);else await load()};
+$("refresh").onclick=load;$("logout").onclick=logout;load();
+</script></body></html>
