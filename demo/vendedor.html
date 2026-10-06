@@ -24,15 +24,33 @@
   <div class="card"><b>Mis visitas</b><div id="visitsList">Cargando…</div></div>
   <div class="card"><b>Mis imprevistos</b><div id="incidentsList">Cargando…</div></div>
 </main>
+<div id="incidentModal" class="modal hidden">
+  <div class="modalbox">
+    <b>🚨 Reportar imprevisto</b>
+    <label>Tipo</label>
+    <select id="incidentType">
+      <option value="Ponchadura">Ponchadura</option>
+      <option value="Falla mecánica">Falla mecánica</option>
+      <option value="Accidente">Accidente</option>
+      <option value="Cliente cerrado">Cliente cerrado</option>
+      <option value="Bloqueo vial">Bloqueo vial</option>
+      <option value="Otro">Otro</option>
+    </select>
+    <label>Comentario</label>
+    <textarea id="incidentDetails" rows="3" placeholder="Describe brevemente qué ocurrió"></textarea>
+    <button id="incidentContinue" type="button">📍 Obtener GPS y tomar evidencia</button>
+    <button id="incidentCancel" type="button" class="light">Cancelar</button>
+  </div>
+</div>
 <div id="camModal" class="modal hidden">
   <div class="modalbox">
-    <b>2️⃣ 📷 Evidencia en vivo</b>
+    <b id="camTitle">2️⃣ 📷 Evidencia en vivo</b>
     <div id="camGpsStatus" class="small"></div>
     <video id="video" autoplay playsinline muted></video>
     <button id="snapBtn" type="button">Tomar foto y enviar</button>
     <button id="cancelCam" type="button" class="light">Cancelar</button>
   </div>
 </div>
-<script src="vendedor.js?v=10"></script>
+<script src="vendedor.js?v=11"></script>
 </body>
 </html>
