@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
-<header><h1>RutaSales</h1><div class="sub">BETA MUESTRA 1.0 · Supervisor · VALIDACIÓN GPS v14</div></header>
+<header><h1>RutaSales</h1><div class="sub">BETA MUESTRA 1.0 · Supervisor · VALIDACIÓN GPS v15</div></header>
 <main>
   <div class="card">
     <b>Panel Supervisor</b>
@@ -49,6 +49,7 @@
   <div id="visitsList">Cargando…</div>
 </div>
   <div class="card"><b>🚨 Contingencias</b><div id="incidentsList">Cargando…</div></div>
+  <div class="card"><b>↔️ Historial de reasignaciones</b><div id="reassignList">Cargando…</div></div>
 </main>
 <script>
 const BASE="https://ezfqvhoprfstcmdiflcm.supabase.co/rest/v1/";
@@ -74,7 +75,58 @@ function renderVisit(v){
 }
 function category(v){const d=Number(v.distance_m);if(!Number.isFinite(d))return "none";if(d<=100)return "valid";if(d<=250)return "review";return "out"}
 function renderFilteredVisits(){const list=currentFilter==="all"?allVisits:allVisits.filter(v=>category(v)===currentFilter);$("visitsList").innerHTML=list.length?list.map(renderVisit).join(""):'<div class="small">No hay visitas en este filtro.</div>'}
-async function refreshLists(){try{const [ss,rr,visits,incs]=await Promise.all([api("rs_sellers?select=*&order=name"),api("rs_routes?select=*&order=name"),api("rs_visits?select=*&order=created_at.desc"),api("rs_incidents?select=*&order=created_at.desc")]);sellers=ss;routes=rr;allVisits=visits;fillSelects();$("kRoutes").textContent=routes.length;$("kSellers").textContent=sellers.length;$("kVisits").textContent=visits.length;$("kIncidents").textContent=incs.filter(i=>!i.resolved).length;const valid=visits.filter(v=>category(v)==="valid").length,review=visits.filter(v=>category(v)==="review").length,out=visits.filter(v=>category(v)==="out").length;$("kValid").textContent=valid;$("kReview").textContent=review;$("kOutZone").textContent=out;renderFilteredVisits();$("incidentsList").innerHTML=incs.length?incs.map(i=>'<div class="visit"><b>'+e(i.incident_type)+'</b><div class="small">'+e(sellers.find(s=>s.id===i.seller_id)?.name)+' · GPS '+Number(i.lat).toFixed(6)+', '+Number(i.lng).toFixed(6)+' · ±'+Math.round(i.accuracy||0)+' m · '+new Date(i.captured_at).toLocaleString()+'</div><a href="https://www.google.com/maps?q='+encodeURIComponent(i.lat+','+i.lng)+'" target="_blank" rel="noopener"><button type="button" class="light">📍 Ver GPS de contingencia</button></a></div>').join(""):'<div class="small">Sin contingencias.</div>'}catch(err){$("saveMsg").textContent="Error: "+err.message}}
+async function refreshLists(){try{
+ const [ss,rr,visits,incs,reassignments]=await Promise.all([
+  api("rs_sellers?select=*&order=name"),
+  api("rs_routes?select=*&order=name"),
+  api("rs_visits?select=*&order=created_at.desc"),
+  api("rs_incidents?select=*&order=created_at.desc"),
+  api("rs_reassignments?select=*&order=created_at.desc")
+ ]);
+ sellers=ss;routes=rr;allVisits=visits;fillSelects();
+ $("kRoutes").textContent=routes.length;$("kSellers").textContent=sellers.length;$("kVisits").textContent=visits.length;$("kIncidents").textContent=incs.filter(i=>!i.resolved).length;
+ const valid=visits.filter(v=>category(v)==="valid").length,review=visits.filter(v=>category(v)==="review").length,out=visits.filter(v=>category(v)==="out").length;
+ $("kValid").textContent=valid;$("kReview").textContent=review;$("kOutZone").textContent=out;
+ renderFilteredVisits();
+
+ $("incidentsList").innerHTML=incs.length?incs.map(i=>{
+   const sellerName=e(sellers.find(s=>s.id===i.seller_id)?.name);
+   const routeName=e(routes.find(r=>r.id===i.route_id)?.name);
+   const pending=visits.filter(v=>v.seller_id===i.seller_id&&v.route_id===i.route_id&&v.status==="PENDIENTE").length;
+   const opts=sellers.filter(s=>s.id!==i.seller_id).map(s=>'<option value="'+s.id+'">'+e(s.name)+'</option>').join("");
+   const gps='<div class="small"><b>GPS:</b> '+Number(i.lat).toFixed(6)+', '+Number(i.lng).toFixed(6)+' · precisión ±'+Math.round(i.accuracy||0)+' m</div><a href="https://www.google.com/maps?q='+encodeURIComponent(i.lat+','+i.lng)+'" target="_blank" rel="noopener"><button type="button" class="light">📍 Ver GPS del imprevisto</button></a>';
+   const photo=i.photo_data?'<img class="evidence" src="'+i.photo_data+'">':'';
+   const actions=i.resolved?'<div class="ok">✅ ATENDIDO'+(i.resolved_at?' · '+new Date(i.resolved_at).toLocaleString():'')+'</div>':'<div style="margin-top:10px;padding:10px;border:1px solid #ffd5d0;border-radius:10px"><b>Acción del supervisor</b><div class="small">Pendientes en esta ruta: '+pending+'</div><label>Reasignar pendientes a</label><select id="to_'+i.id+'">'+opts+'</select><button type="button" onclick="reassignIncident(\''+i.id+'\',\''+i.route_id+'\',\''+i.seller_id+'\')">↔️ Reasignar pendientes</button><button type="button" class="light" onclick="resolveIncident(\''+i.id+'\')">✅ Atender sin reasignar</button></div>';
+   return '<div class="visit"><b>🚨 '+e(i.incident_type)+'</b> <span class="badge">'+(i.resolved?'ATENDIDO':'ABIERTO')+'</span><div class="small">'+sellerName+' · '+routeName+' · '+new Date(i.captured_at).toLocaleString()+'</div><div>'+e(i.details||"")+'</div>'+photo+gps+actions+'</div>';
+ }).join(""):'<div class="small">Sin contingencias.</div>';
+
+ $("reassignList").innerHTML=reassignments.length?reassignments.map(x=>{
+   const from=e(sellers.find(s=>s.id===x.from_seller_id)?.name||"—"),to=e(sellers.find(s=>s.id===x.to_seller_id)?.name||"—"),route=e(routes.find(r=>r.id===x.route_id)?.name||"—");
+   return '<div class="visit"><b>'+route+'</b><div>'+from+' → <b>'+to+'</b></div><div class="small">'+x.pending_count+' visita(s) pendiente(s) · '+new Date(x.created_at).toLocaleString()+'</div><div class="small">'+e(x.reason||"")+'</div></div>';
+ }).join(""):'<div class="small">Sin reasignaciones.</div>';
+}catch(err){$("saveMsg").textContent="Error: "+err.message}}
+async function resolveIncident(id){
+ try{
+  await api("rs_incidents?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({resolved:true,resolved_at:new Date().toISOString(),resolution_note:"Atendido sin reasignación"})});
+  await refreshLists();
+ }catch(err){alert("No se pudo atender el imprevisto: "+err.message)}
+}
+async function reassignIncident(id,routeId,fromSellerId){
+ const sel=$("to_"+id); if(!sel||!sel.value)return alert("Selecciona otro vendedor.");
+ const toSellerId=sel.value;
+ const pending=allVisits.filter(v=>v.seller_id===fromSellerId&&v.route_id===routeId&&v.status==="PENDIENTE");
+ if(!pending.length)return alert("No hay visitas pendientes para reasignar.");
+ try{
+  await api("rs_visits?seller_id=eq."+fromSellerId+"&route_id=eq."+routeId+"&status=eq.PENDIENTE",{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({seller_id:toSellerId,original_seller_id:fromSellerId})});
+  const incident=await api("rs_incidents?id=eq."+id+"&select=incident_type,details");
+  const reason=(incident&&incident[0])?incident[0].incident_type+(incident[0].details?" · "+incident[0].details:""):"Reasignación por imprevisto";
+  await api("rs_reassignments",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({incident_id:id,route_id:routeId,from_seller_id:fromSellerId,to_seller_id:toSellerId,pending_count:pending.length,reason})});
+  await api("rs_incidents?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({resolved:true,resolved_at:new Date().toISOString(),reassigned_to:toSellerId,resolution_note:"Pendientes reasignados"})});
+  alert("Se reasignaron "+pending.length+" visita(s) pendiente(s).");
+  await refreshLists();
+ }catch(err){alert("No se pudo reasignar: "+err.message)}
+}
+window.resolveIncident=resolveIncident;window.reassignIncident=reassignIncident;
 $("date").value=today();
 $("refreshData").onclick=refreshLists;document.querySelectorAll(".zoneFilter").forEach(btn=>btn.addEventListener("click",()=>{currentFilter=btn.dataset.filter;renderFilteredVisits();}));
 $("saveVisit").onclick=async()=>{
