@@ -1,9 +1,16 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RutaSales Central</title><link rel="stylesheet" href="../demo/styles.css?v=10"></head><body>
-<header><h1>RutaSales</h1><div class="sub">BETA 2.0 · CENTRAL</div></header><main>
+<meta http-equiv="Cache-Control" content="no-store"><title>RutaSales Central</title><link rel="stylesheet" href="../demo/styles.css?v=10"></head><body>
+<header><h1>RutaSales</h1><div class="sub">BETA 2.0 · CENTRAL SEGURA · PLAN EQUIPO HASTA 12 VENDEDORES</div></header><main>
 <div class="card"><b id="welcome">Central</b><button id="refresh" class="light">🔄 Actualizar</button><button id="logout" class="light">Cerrar sesión</button></div>
-<div class="grid"><div class="card"><div class="small">Supervisores</div><h2 id="kSup">0</h2></div><div class="card"><div class="small">Vendedores</div><h2 id="kSell">0</h2></div><div class="card"><div class="small">Rutas</div><h2 id="kRoutes">0</h2></div><div class="card"><div class="small">Visitas</div><h2 id="kVisits">0</h2></div></div>
-<div class="card"><b>Crear usuario</b><div class="row"><div><label>Nombre</label><input id="newName"></div><div><label>Correo</label><input id="newEmail" type="email"></div></div>
+<div class="grid">
+<div class="card"><div class="small">Supervisores</div><h2 id="kSup">0</h2></div>
+<div class="card"><div class="small">Vendedores activos</div><h2><span id="kSell">0</span>/12</h2></div>
+<div class="card"><div class="small">Rutas</div><h2 id="kRoutes">0</h2></div>
+<div class="card"><div class="small">Visitas</div><h2 id="kVisits">0</h2></div>
+</div>
+<div class="card"><b>Crear usuario</b>
+<div class="small">Cada usuario recibe acceso individual. Las contraseñas son administradas por Supabase Auth.</div>
+<div class="row"><div><label>Nombre</label><input id="newName"></div><div><label>Correo</label><input id="newEmail" type="email"></div></div>
 <div class="row"><div><label>Contraseña inicial</label><input id="newPass" type="password"></div><div><label>Rol</label><select id="newRole"><option>SUPERVISOR</option><option>VENDEDOR</option></select></div></div>
 <div id="supWrap" style="display:none"><label>Supervisor del vendedor</label><select id="newSupervisor"></select></div>
 <button id="createUser">Crear usuario</button><div id="createMsg" class="small"></div></div>
@@ -11,26 +18,32 @@
 <div class="card"><b>Asignar rutas a supervisor</b><div id="routes">Cargando…</div></div>
 </main><script type="module">
 import {supabase,$,esc,requireRole,logout,URL,KEY} from "./common.js";
-let session,account,accounts=[],routes=[];
+let session,account,accounts=[],routes=[],sellerCount=0;
 async function load(){
  const x=await requireRole("CENTRAL"); if(!x)return; session=x.session;account=x.account;$("welcome").textContent="Central · "+account.full_name;
- const [{data:a},{data:r},{data:v}]=await Promise.all([
+ const [{data:a,error:ae},{data:r,error:re},{data:v,error:ve}]=await Promise.all([
   supabase.from("rs_accounts").select("*").order("created_at"),
   supabase.from("rs_routes").select("*").order("name"),
   supabase.from("rs_visits").select("id")
  ]);
+ if(ae||re||ve){$("users").innerHTML='<div class="danger">No se pudieron cargar los datos.</div>';return}
  accounts=a||[];routes=r||[];
- const sups=accounts.filter(x=>x.role==="SUPERVISOR"&&x.active),sells=accounts.filter(x=>x.role==="VENDEDOR"&&x.active);
+ const sups=accounts.filter(x=>x.role==="SUPERVISOR"&&x.active),sells=accounts.filter(x=>x.role==="VENDEDOR"&&x.active);sellerCount=sells.length;
  $("kSup").textContent=sups.length;$("kSell").textContent=sells.length;$("kRoutes").textContent=routes.length;$("kVisits").textContent=(v||[]).length;
  $("newSupervisor").innerHTML=sups.map(s=>'<option value="'+s.user_id+'">'+esc(s.full_name)+'</option>').join("");
- $("users").innerHTML=accounts.map(x=>'<div class="visit"><b>'+esc(x.full_name)+'</b> <span class="badge">'+x.role+'</span><div class="small">'+(x.active?"ACTIVO":"INACTIVO")+'</div></div>').join("")||'<div class="small">Sin usuarios.</div>';
+ $("users").innerHTML=accounts.map(x=>'<div class="visit"><b>'+esc(x.full_name)+'</b> <span class="badge">'+x.role+'</span><div class="small">'+(x.active?"ACTIVO":"INACTIVO")+(x.role==="VENDEDOR"?" · ocupa 1 de 12 licencias":"")+'</div></div>').join("")||'<div class="small">Sin usuarios.</div>';
  $("routes").innerHTML=routes.map(r=>'<div class="visit"><b>'+esc(r.name)+'</b><select id="route_'+r.id+'"><option value="">Sin supervisor</option>'+sups.map(s=>'<option value="'+s.user_id+'" '+(r.supervisor_user_id===s.user_id?"selected":"")+'>'+esc(s.full_name)+'</option>').join("")+'</select><button onclick="assignRoute(\''+r.id+'\')">Guardar asignación</button></div>').join("");
 }
 $("newRole").onchange=()=>{$("supWrap").style.display=$("newRole").value==="VENDEDOR"?"block":"none"};
 $("createUser").onclick=async()=>{
  $("createMsg").textContent="Creando…";
  const payload={full_name:$("newName").value.trim(),email:$("newEmail").value.trim(),password:$("newPass").value,role:$("newRole").value};
- if(payload.role==="VENDEDOR")payload.supervisor_user_id=$("newSupervisor").value||null;
+ if(!payload.full_name||!payload.email||!payload.password){$("createMsg").textContent="Completa nombre, correo y contraseña.";return}
+ if(payload.role==="VENDEDOR"){
+   if(sellerCount>=12){$("createMsg").textContent="El plan permite hasta 12 vendedores activos.";return}
+   payload.supervisor_user_id=$("newSupervisor").value||null;
+   if(!payload.supervisor_user_id){$("createMsg").textContent="Primero crea y selecciona un Supervisor.";return}
+ }
  const r=await fetch(URL+"/functions/v1/rutasales-admin-users",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY,Authorization:"Bearer "+session.access_token},body:JSON.stringify(payload)});
  const j=await r.json(); if(!r.ok){$("createMsg").textContent=j.error||"Error";return}
  $("createMsg").textContent="Usuario creado."; $("newName").value="";$("newEmail").value="";$("newPass").value="";await load();
