@@ -1,4 +1,4 @@
-# RutaSales — BETA MUESTRA 1.0
+# RutaSales — BETA MUESTRA 1.1
 
 Estado canónico: 2026-10-05
 Repositorio: Pgamenox/RutaSales
@@ -19,6 +19,10 @@ Backend de muestra: Supabase RutaSales-DEMO (ezfqvhoprfstcmdiflcm)
 - Clasificación comercial: 0–100 m válida; 101–250 m revisar; >250 m fuera de zona.
 - Filtros de Supervisor para visitas válidas, revisar y fuera de zona.
 - Prueba real de fuera de zona validada con OXXO Universidad.
+- Reporte de imprevistos desde Vendedor con tipo, comentario, GPS y foto en vivo.
+- Atención de contingencias desde Supervisor.
+- Reasignación de visitas pendientes a otro vendedor.
+- Historial persistente de reasignaciones con origen, destino, cantidad, motivo y hora.
 
 ## No regresar a
 - Beta 6.1 localStorage para nuevas funciones.
@@ -27,12 +31,10 @@ Backend de muestra: Supabase RutaSales-DEMO (ezfqvhoprfstcmdiflcm)
 - app.js antiguo para Supervisor.
 
 ## Pendientes prioritarios de la muestra
-1. Recuperar flujo visible de imprevistos/contingencias en Vendedor estable.
-2. Reasignación de visitas pendientes desde Supervisor.
-3. Catálogo simple de clientes con GPS guardado para no capturar coordenadas manualmente cada vez.
-4. Evitar duplicados de cliente/dirección en una misma jornada/ruta.
-5. Reporte diario de Supervisor y PDF/compartir.
-6. Mejorar autenticación antes de producción; los tokens demo no son seguridad final.
-7. Mover fotos de base64 en Postgres a Supabase Storage antes de producción.
+1. Catálogo simple de clientes con GPS guardado para no capturar coordenadas manualmente cada vez.
+2. Evitar duplicados de cliente/dirección en una misma jornada/ruta.
+3. Reporte diario de Supervisor y PDF/compartir.
+4. Mejorar autenticación antes de producción; los tokens demo no son seguridad final.
+5. Mover fotos de base64 en Postgres a Supabase Storage antes de producción.
 
-Regla: toda mejora nueva debe partir de BETA MUESTRA 1.0 en main/demo y conservar las funciones ya probadas.
+Regla: toda mejora nueva debe partir de BETA MUESTRA 1.1 en main/demo y conservar las funciones ya probadas.
