@@ -1,0 +1,25 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store"><title>RutaSales 2.0</title><link rel="stylesheet" href="../demo/styles.css?v=10"></head>
+<body><header><h1>RutaSales</h1><div class="sub">BETA 2.0 · ACCESO SEGURO</div></header><main>
+<div class="card"><h2>Iniciar sesión</h2><div class="small">Central, Supervisor o Vendedor</div>
+<label>Correo</label><input id="email" type="email" autocomplete="username">
+<label>Contraseña</label><input id="password" type="password" autocomplete="current-password">
+<button id="login">Entrar</button><div id="msg" class="small"></div></div>
+<div class="card"><b>Primera configuración</b><div class="small">Solo se usa una vez para crear la cuenta Central.</div>
+<a href="setup.html"><button class="light">Configurar Central</button></a></div>
+</main><script type="module">
+import {supabase,$} from "./common.js";
+const {data:{session}}=await supabase.auth.getSession();
+if(session){
+ const {data:a}=await supabase.from("rs_accounts").select("role").eq("user_id",session.user.id).single();
+ if(a) location.href=a.role==="CENTRAL"?"central.html":a.role==="SUPERVISOR"?"supervisor.html":"vendedor.html";
+}
+$("login").onclick=async()=>{
+ $("msg").textContent="Validando…";
+ const {data,error}=await supabase.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+ if(error){$("msg").textContent="Acceso no válido.";return}
+ const {data:a,error:e}=await supabase.from("rs_accounts").select("role,active").eq("user_id",data.user.id).single();
+ if(e||!a?.active){await supabase.auth.signOut();$("msg").textContent="Usuario sin acceso activo.";return}
+ location.href=a.role==="CENTRAL"?"central.html":a.role==="SUPERVISOR"?"supervisor.html":"vendedor.html";
+};
+</script></body></html>
