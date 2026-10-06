@@ -1,4 +1,4 @@
-# RutaSales — BETA MUESTRA 1.2
+# RutaSales — BETA MUESTRA 1.3
 
 Estado canónico: 2026-10-05
 Repositorio: Pgamenox/RutaSales
@@ -25,6 +25,9 @@ Backend de muestra: Supabase RutaSales-DEMO (ezfqvhoprfstcmdiflcm)
 - Historial persistente de reasignaciones con origen, destino, cantidad, motivo y hora.
 - Catálogo de clientes con dirección, GPS real y radio permitido.
 - Al asignar una visita desde catálogo, hereda automáticamente nombre, dirección, GPS esperado y radio.
+- Vendedor puede registrar negocio nuevo encontrado en campo con nombre, referencia, GPS y foto en vivo.
+- Supervisor recibe la propuesta separada de contingencias y puede aprobarla o rechazarla.
+- Al aprobar, el negocio se convierte en cliente oficial del catálogo con el GPS capturado en campo.
 
 ## No regresar a
 - Beta 6.1 localStorage para nuevas funciones.
@@ -38,4 +41,4 @@ Backend de muestra: Supabase RutaSales-DEMO (ezfqvhoprfstcmdiflcm)
 3. Mejorar autenticación antes de producción; los tokens demo no son seguridad final.
 4. Mover fotos de base64 en Postgres a Supabase Storage antes de producción.
 
-Regla: toda mejora nueva debe partir de BETA MUESTRA 1.2 en main/demo y conservar las funciones ya probadas.
+Regla: toda mejora nueva debe partir de BETA MUESTRA 1.3 en main/demo y conservar las funciones ya probadas.
