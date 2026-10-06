@@ -1,30 +1,34 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RutaSales Vendedor</title><link rel="stylesheet" href="../demo/styles.css?v=10"></head><body>
-<header><h1>RutaSales</h1><div class="sub">BETA 2.0 · VENDEDOR</div></header><main>
-<div class="card"><b id="welcome">Vendedor</b><button id="refresh" class="light">🔄 Actualizar</button><button id="logout" class="light">Cerrar sesión</button></div>
-<div class="grid"><div class="card"><div class="small">Asignadas</div><h2 id="kAll">0</h2></div><div class="card"><div class="small">Pendientes</div><h2 id="kPend">0</h2></div><div class="card"><div class="small">Completadas</div><h2 id="kDone">0</h2></div></div>
-<div class="card"><b>Mis visitas</b><div id="visits">Cargando…</div></div>
+<meta http-equiv="Cache-Control" content="no-store"><title>RutaSales Vendedor</title><link rel="stylesheet" href="../demo/styles.css?v=10"></head><body>
+<header><h1>RutaSales</h1><div class="sub">BETA 2.0 · VENDEDOR SEGURO</div></header><main>
+<div class="card"><b id="welcome">Vendedor</b><button id="refreshSeller" class="light">🔄 Actualizar</button><button id="openCustomerProposal">➕ Registrar negocio nuevo</button><button id="logout" class="light">Cerrar sesión</button></div>
+<div class="grid"><div class="card"><div class="small">Asignadas</div><h2 id="kAssigned">0</h2></div><div class="card"><div class="small">Pendientes</div><h2 id="kPending">0</h2></div><div class="card"><div class="small">Completadas</div><h2 id="kDone">0</h2></div></div>
+<div class="card"><b>Mis visitas</b><div id="visitsList">Cargando…</div></div>
+<div class="card"><b>Mis imprevistos y altas</b><div id="incidentsList">Cargando…</div></div>
 </main>
-<div id="cam" class="modal hidden"><div class="modalbox"><b>📷 Evidencia en vivo</b><div id="gpsStatus" class="small"></div><video id="video" autoplay playsinline muted></video><button id="snap">Tomar foto y enviar</button><button id="cancel" class="light">Cancelar</button></div></div>
-<script type="module">
-import {supabase,$,esc,requireRole,logout,geo} from "./common.js";
-let account=null,visits=[],gpsById={},stream=null,current=null;
-function gpsBox(g){return '<div class="ok">GPS '+g.lat.toFixed(6)+', '+g.lng.toFixed(6)+' · ±'+Math.round(g.accuracy)+' m</div>'}
-async function load(){
- const x=await requireRole("VENDEDOR");if(!x)return;account=x.account;$("welcome").textContent="Vendedor · "+account.full_name;
- const {data:v,error}=await supabase.from("rs_visits").select("*").order("visit_date");
- if(error){$("visits").innerHTML='<div class="danger">'+esc(error.message)+'</div>';return}
- visits=v||[];$("kAll").textContent=visits.length;$("kPend").textContent=visits.filter(v=>v.status==="PENDIENTE").length;$("kDone").textContent=visits.filter(v=>v.status==="COMPLETADA").length;
- $("visits").innerHTML=visits.map(v=>{
-  if(v.status!=="PENDIENTE")return '<div class="visit"><b>'+esc(v.customer_name)+'</b> <span class="badge">'+esc(v.status)+'</span><div class="small">'+esc(v.address)+'</div><div class="ok">Evidencia enviada</div></div>';
-  const g=gpsById[v.id];
-  return '<div class="visit"><b>'+esc(v.customer_name)+'</b> <span class="badge">PENDIENTE</span><div class="small">'+esc(v.address)+' · '+esc(v.visit_date)+'</div><button onclick="getGps(\''+v.id+'\')">1️⃣ 📍 Obtener GPS</button><div id="g_'+v.id+'">'+(g?gpsBox(g):'<div class="small">GPS pendiente.</div>')+'</div><button id="p_'+v.id+'" '+(g?'':'disabled')+' onclick="camera(\''+v.id+'\')">2️⃣ 📷 Foto y enviar</button></div>';
- }).join("")||'<div class="small">Sin visitas asignadas.</div>';
-}
-window.getGps=async id=>{try{const g=await geo();if(g.accuracy>150)return alert("Precisión insuficiente: ±"+Math.round(g.accuracy)+" m");gpsById[id]=g;$("g_"+id).innerHTML=gpsBox(g);$("p_"+id).disabled=false}catch(e){alert("No se pudo obtener GPS: "+e.message)}};
-window.camera=async id=>{const g=gpsById[id];if(!g)return;current=id;$("gpsStatus").innerHTML=gpsBox(g);try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});$("video").srcObject=stream;$("cam").classList.remove("hidden")}catch(e){alert("No se pudo abrir cámara: "+e.message)}};
-function close(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;$("video").srcObject=null;$("cam").classList.add("hidden");current=null}
-$("cancel").onclick=close;
-$("snap").onclick=async()=>{const id=current,g=gpsById[id],v=$("video");if(!id||!g||!v.videoWidth)return;const c=document.createElement("canvas"),w=Math.min(640,v.videoWidth),h=Math.round(v.videoHeight*w/v.videoWidth);c.width=w;c.height=h;c.getContext("2d").drawImage(v,0,0,w,h);const photo=c.toDataURL("image/jpeg",.56);const {error}=await supabase.from("rs_visits").update({status:"COMPLETADA",lat:g.lat,lng:g.lng,accuracy:g.accuracy,photo_data:photo,evidence_source:"LIVE_CAMERA",device_captured_at:new Date().toISOString()}).eq("id",id);if(error)return alert(error.message);delete gpsById[id];close();await load();};
-$("refresh").onclick=load;$("logout").onclick=logout;load();
-</script></body></html>
+
+<div id="customerProposalModal" class="modal hidden"><div class="modalbox">
+<b>➕ Registrar negocio nuevo</b>
+<label>Nombre del negocio</label><input id="proposalName" type="text" placeholder="Ej. Abarrotes Lupita">
+<label>Referencia o dirección</label><textarea id="proposalAddress" rows="3" placeholder="Calle, número o referencia visible"></textarea>
+<label>Ruta donde lo encontraste</label><select id="proposalRoute"></select>
+<div class="small">La ubicación se tomará del GPS del teléfono y la foto deberá capturarse en ese momento.</div>
+<button id="proposalContinue">📍 Obtener GPS y tomar foto</button><button id="proposalCancel" class="light">Cancelar</button>
+</div></div>
+
+<div id="incidentModal" class="modal hidden"><div class="modalbox">
+<b>🚨 Reportar imprevisto</b>
+<label>Tipo</label><select id="incidentType">
+<option>Ponchadura</option><option>Falla mecánica</option><option>Accidente</option><option>Cliente cerrado</option><option>Bloqueo vial</option><option>Otro</option>
+</select>
+<label>Comentario</label><textarea id="incidentDetails" rows="3" placeholder="Describe brevemente qué ocurrió"></textarea>
+<button id="incidentContinue">📍 Obtener GPS y tomar evidencia</button><button id="incidentCancel" class="light">Cancelar</button>
+</div></div>
+
+<div id="camModal" class="modal hidden"><div class="modalbox">
+<b id="camTitle">📷 Evidencia en vivo</b><div id="camGpsStatus" class="small"></div>
+<video id="video" autoplay playsinline muted></video>
+<button id="snapBtn">Tomar foto y enviar</button><button id="cancelCam" class="light">Cancelar</button>
+</div></div>
+
+<script type="module" src="./vendedor.js?v=2"></script></body></html>
