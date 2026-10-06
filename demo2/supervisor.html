@@ -1,0 +1,28 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RutaSales Supervisor</title><link rel="stylesheet" href="../demo/styles.css?v=10"></head><body>
+<header><h1>RutaSales</h1><div class="sub">BETA 2.0 · SUPERVISOR</div></header><main>
+<div class="card"><b id="welcome">Supervisor</b><button id="refresh" class="light">🔄 Actualizar</button><button id="logout" class="light">Cerrar sesión</button></div>
+<div class="grid"><div class="card"><div class="small">Mis vendedores</div><h2 id="kSell">0</h2></div><div class="card"><div class="small">Mis rutas</div><h2 id="kRoutes">0</h2></div><div class="card"><div class="small">Pendientes</div><h2 id="kPend">0</h2></div><div class="card"><div class="small">Completadas</div><h2 id="kDone">0</h2></div></div>
+<div class="card"><b>Mis vendedores</b><div id="sellers">Cargando…</div></div>
+<div class="card"><b>Mis rutas</b><div id="routes">Cargando…</div></div>
+<div class="card"><b>Visitas de mi equipo</b><div id="visits">Cargando…</div></div>
+<div class="card"><b>Contingencias / altas</b><div id="incs">Cargando…</div></div>
+</main><script type="module">
+import {supabase,$,esc,requireRole,logout} from "./common.js";
+async function load(){
+ const x=await requireRole("SUPERVISOR");if(!x)return;$("welcome").textContent="Supervisor · "+x.account.full_name;
+ const [{data:s},{data:r},{data:v},{data:i}]=await Promise.all([
+  supabase.from("rs_sellers").select("*").order("name"),
+  supabase.from("rs_routes").select("*").order("name"),
+  supabase.from("rs_visits").select("*").order("created_at",{ascending:false}),
+  supabase.from("rs_incidents").select("*").order("created_at",{ascending:false})
+ ]);
+ const sellers=s||[],routes=r||[],visits=v||[],incs=i||[];
+ $("kSell").textContent=sellers.length;$("kRoutes").textContent=routes.length;$("kPend").textContent=visits.filter(x=>x.status==="PENDIENTE").length;$("kDone").textContent=visits.filter(x=>x.status==="COMPLETADA").length;
+ $("sellers").innerHTML=sellers.map(x=>'<div class="visit"><b>'+esc(x.name)+'</b></div>').join("")||'<div class="small">Sin vendedores asignados.</div>';
+ $("routes").innerHTML=routes.map(x=>'<div class="visit"><b>'+esc(x.name)+'</b></div>').join("")||'<div class="small">Sin rutas asignadas.</div>';
+ $("visits").innerHTML=visits.map(v=>'<div class="visit"><b>'+esc(v.customer_name)+'</b> <span class="badge">'+esc(v.status)+'</span><div class="small">'+esc(v.address)+' · '+esc(v.visit_date)+'</div>'+(v.distance_m!=null?'<div class="small">Distancia: '+Math.round(v.distance_m)+' m</div>':'')+'</div>').join("")||'<div class="small">Sin visitas.</div>';
+ $("incs").innerHTML=incs.map(i=>'<div class="visit"><b>'+esc(i.incident_type)+'</b><div class="small">'+esc(i.details||i.proposal_name||"")+'</div></div>').join("")||'<div class="small">Sin incidencias.</div>';
+}
+$("refresh").onclick=load;$("logout").onclick=logout;load();
+</script></body></html>
