@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
-<header><h1>RutaSales</h1><div class="sub">BETA MUESTRA 1.3 · Supervisor · ALTAS EN CAMPO v17</div></header>
+<header><h1>RutaSales</h1><div class="sub">BETA MUESTRA 1.4 · Supervisor · DEMO COMERCIAL v18</div></header>
 <main>
   <div class="card">
     <b>Panel Supervisor</b>
@@ -18,7 +18,7 @@
   <div class="grid">
     <div class="card"><div class="small">Rutas</div><h2 id="kRoutes">0</h2></div>
     <div class="card"><div class="small">Vendedores</div><h2 id="kSellers">0</h2></div><div class="card"><div class="small">Clientes</div><h2 id="kCustomers">0</h2></div>
-    <div class="card"><div class="small">Visitas</div><h2 id="kVisits">0</h2></div>
+    <div class="card"><div class="small">Visitas</div><h2 id="kVisits">0</h2></div><div class="card"><div class="small">Pendientes</div><h2 id="kPendingVisits">0</h2></div><div class="card"><div class="small">Completadas</div><h2 id="kCompletedVisits">0</h2></div><div class="card"><div class="small">Altas por aprobar</div><h2 id="kProposals">0</h2></div>
     <div class="card"><div class="small">Contingencias</div><h2 id="kIncidents">0</h2></div><div class="card"><div class="small">Visitas válidas</div><h2 id="kValid">0</h2></div><div class="card"><div class="small">Revisar</div><h2 id="kReview">0</h2></div><div class="card"><div class="small">Fuera de zona</div><h2 id="kOutZone">0</h2></div>
   </div>
   <div class="card">
@@ -104,7 +104,7 @@ async function refreshLists(){try{
   api("rs_reassignments?select=*&order=created_at.desc")
  ]);
  sellers=ss;routes=rr;customers=cc;allVisits=visits;fillSelects();
- $("kRoutes").textContent=routes.length;$("kSellers").textContent=sellers.length;$("kCustomers").textContent=customers.length;$("kVisits").textContent=visits.length;$("kIncidents").textContent=incs.filter(i=>i.incident_type!=="NUEVO CLIENTE"&&!i.resolved).length;
+ $("kRoutes").textContent=routes.length;$("kSellers").textContent=sellers.length;$("kCustomers").textContent=customers.length;$("kVisits").textContent=visits.length;$("kPendingVisits").textContent=visits.filter(v=>v.status==="PENDIENTE").length;$("kCompletedVisits").textContent=visits.filter(v=>v.status==="COMPLETADA").length;$("kProposals").textContent=incs.filter(i=>i.incident_type==="NUEVO CLIENTE"&&!i.resolved).length;$("kIncidents").textContent=incs.filter(i=>i.incident_type!=="NUEVO CLIENTE"&&!i.resolved).length;
  const valid=visits.filter(v=>category(v)==="valid").length,review=visits.filter(v=>category(v)==="review").length,out=visits.filter(v=>category(v)==="out").length;
  $("kValid").textContent=valid;$("kReview").textContent=review;$("kOutZone").textContent=out;
  renderFilteredVisits();
@@ -201,13 +201,19 @@ $("saveCustomer").onclick=async()=>{
 $("saveVisit").onclick=async()=>{
  const x=customers.find(x=>x.id===$("customer").value);
  if(!x)return $("saveMsg").textContent="Selecciona un cliente del catálogo.";
- const payload={route_id:$("route").value,seller_id:$("seller").value,customer_id:x.id,customer_name:x.name,address:x.address,visit_date:$("date").value,status:"PENDIENTE",target_lat:x.lat,target_lng:x.lng,allowed_radius_m:x.allowed_radius_m};
+ const routeId=$("route").value,date=$("date").value;
+ const duplicate=allVisits.find(v=>v.customer_id===x.id&&v.route_id===routeId&&v.visit_date===date);
+ if(duplicate)return $("saveMsg").textContent="⚠️ Este cliente ya está asignado en esta ruta para esa fecha.";
+ const payload={route_id:routeId,seller_id:$("seller").value,customer_id:x.id,customer_name:x.name,address:x.address,visit_date:date,status:"PENDIENTE",target_lat:x.lat,target_lng:x.lng,allowed_radius_m:x.allowed_radius_m};
  try{
    $("saveMsg").textContent="Guardando…";
    await api("rs_visits",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(payload)});
    $("saveMsg").textContent="Visita asignada con GPS del cliente.";
    await refreshLists();
- }catch(err){$("saveMsg").textContent="No se pudo guardar: "+err.message}
+ }catch(err){
+   if(String(err.message).includes("rs_visits_unique_customer_route_day"))$("saveMsg").textContent="⚠️ Visita duplicada bloqueada: ese cliente ya está en la ruta para esa fecha.";
+   else $("saveMsg").textContent="No se pudo guardar: "+err.message;
+ }
 };
 refreshLists();
 </script>
