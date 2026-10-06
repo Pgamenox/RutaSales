@@ -1,4 +1,4 @@
-# RutaSales — BETA MUESTRA 1.3
+# RutaSales — BETA MUESTRA 1.4
 
 Estado canónico: 2026-10-05
 Repositorio: Pgamenox/RutaSales
@@ -28,6 +28,8 @@ Backend de muestra: Supabase RutaSales-DEMO (ezfqvhoprfstcmdiflcm)
 - Vendedor puede registrar negocio nuevo encontrado en campo con nombre, referencia, GPS y foto en vivo.
 - Supervisor recibe la propuesta separada de contingencias y puede aprobarla o rechazarla.
 - Al aprobar, el negocio se convierte en cliente oficial del catálogo con el GPS capturado en campo.
+- Bloqueo de visita duplicada para el mismo cliente, ruta y fecha.
+- Resumen ejecutivo con visitas pendientes, completadas y altas por aprobar.
 
 ## No regresar a
 - Beta 6.1 localStorage para nuevas funciones.
@@ -36,9 +38,8 @@ Backend de muestra: Supabase RutaSales-DEMO (ezfqvhoprfstcmdiflcm)
 - app.js antiguo para Supervisor.
 
 ## Pendientes prioritarios de la muestra
-1. Evitar duplicados de cliente/dirección en una misma jornada/ruta.
-2. Reporte diario de Supervisor y PDF/compartir.
-3. Mejorar autenticación antes de producción; los tokens demo no son seguridad final.
-4. Mover fotos de base64 en Postgres a Supabase Storage antes de producción.
+1. Reporte diario de Supervisor y PDF/compartir.
+2. Mejorar autenticación antes de producción; los tokens demo no son seguridad final.
+3. Mover fotos de base64 en Postgres a Supabase Storage antes de producción.
 
-Regla: toda mejora nueva debe partir de BETA MUESTRA 1.3 en main/demo y conservar las funciones ya probadas.
+Regla: toda mejora nueva debe partir de BETA MUESTRA 1.4 en main/demo y conservar las funciones ya probadas.
