@@ -1,0 +1,21 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RutaSales · Configurar Central</title><link rel="stylesheet" href="../demo/styles.css?v=10"></head><body>
+<header><h1>RutaSales</h1><div class="sub">BETA 2.0 · CONFIGURACIÓN CENTRAL</div></header><main><div class="card">
+<b>Crear cuenta Central</b><div class="small">Esta configuración solo funciona una vez.</div>
+<label>Nombre</label><input id="name" autocomplete="name">
+<label>Correo</label><input id="email" type="email" autocomplete="email">
+<label>Contraseña</label><input id="password" type="password" autocomplete="new-password">
+<label>Código de activación</label><input id="code" type="password">
+<button id="go">Crear Central</button><div id="msg" class="small"></div>
+</div></main><script type="module">
+import {$,URL,KEY} from "./common.js";
+$("go").onclick=async()=>{
+ $("msg").textContent="Configurando…";
+ const r=await fetch(URL+"/functions/v1/rutasales-bootstrap-central",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY},
+ body:JSON.stringify({full_name:$("name").value.trim(),email:$("email").value.trim(),password:$("password").value,setup_code:$("code").value})});
+ const j=await r.json();
+ if(!r.ok){$("msg").textContent=j.error||"No se pudo configurar.";return}
+ $("msg").textContent="Central creada. Ya puedes iniciar sesión.";
+ setTimeout(()=>location.href="index.html",1200);
+};
+</script></body></html>
