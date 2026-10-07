@@ -9,6 +9,7 @@ let stream=null;
 let currentMode="visit";
 let currentVisitId=null;
 let incidentRouteId=null;
+let reprogramVisitId=null;
 let incidentGps=null;
 let proposalGps=null;
 
@@ -52,6 +53,7 @@ async function load(){
       '<button type="button" onclick="captureGps(\''+v.id+'\')">1️⃣ 📍 Obtener mi ubicación</button>'+
       '<div id="gps_'+v.id+'">'+(g?gpsHtml(g):'<div class="small">GPS pendiente.</div>')+'</div>'+
       '<button type="button" id="photo_'+v.id+'" onclick="openCameraForVisit(\''+v.id+'\')" '+(g?'':'disabled')+'>2️⃣ 📷 Foto y enviar evidencia</button>'+
+      '<button type="button" id="reprogram_'+v.id+'" class="light" onclick="openReprogram(\''+v.id+'\')" '+(g?'':'disabled')+'>🕒 Cliente no disponible / Reprogramar</button>'+
       '<button type="button" class="dark" onclick="openIncident(\''+v.route_id+'\')">🚨 Reportar imprevisto</button></div>';
   }).join(""):'<div class="small">Sin visitas asignadas.</div>';
 
@@ -72,6 +74,7 @@ window.captureGps=async id=>{
     pendingGps[id]=g;
     $("gps_"+id).innerHTML=gpsHtml(g);
     $("photo_"+id).disabled=false;
+    if($("reprogram_"+id))$("reprogram_"+id).disabled=false;
   }catch(err){alert("No se pudo obtener tu ubicación: "+err.message)}
 };
 
@@ -83,6 +86,16 @@ window.openCameraForVisit=async id=>{
   $("camTitle").textContent="📷 Evidencia de visita";
   $("camGpsStatus").innerHTML=gpsHtml(g);
   await startCamera();
+};
+
+window.openReprogram=id=>{
+  const g=pendingGps[id];
+  if(!g)return alert("Primero obtén tu ubicación.");
+  reprogramVisitId=id;
+  const d=new Date(Date.now()+60*60*1000);
+  const pad=n=>String(n).padStart(2,"0");
+  $("reprogramFor").value=d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes());
+  $("reprogramModal").classList.remove("hidden");
 };
 
 window.openIncident=routeId=>{
@@ -146,6 +159,22 @@ $("snapBtn").onclick=async()=>{
     delete pendingGps[id];closeCamera();alert("Visita enviada con GPS + cámara en vivo.");await load();
   }
 
+  if(currentMode==="reprogram"){
+    const id=currentVisitId,g=pendingGps[id];
+    const when=$("reprogramFor").value,reason=$("reprogramReason").value.trim();
+    if(!id||!g||!when)return alert("Faltan datos para reprogramar.");
+    if(Date.now()-g.capturedAt>120000){closeCamera();delete pendingGps[id];await load();return alert("El GPS venció. Repite el paso 1.");}
+    const iso=new Date(when).toISOString();
+    const {data,error}=await supabase.rpc("rs_reprogram_visit",{
+      p_visit_id:id,p_reprogram_for:iso,p_reason:reason,
+      p_lat:g.lat,p_lng:g.lng,p_accuracy:g.accuracy,p_photo_data:photo,
+      p_device_captured_at:new Date().toISOString()
+    });
+    if(error)return alert("No se pudo reprogramar: "+error.message);
+    delete pendingGps[id];reprogramVisitId=null;closeCamera();$("reprogramReason").value="";
+    alert("Primer intento guardado. Nuevo intento creado para "+new Date(iso).toLocaleString()+".");await load();
+  }
+
   if(currentMode==="incident"){
     const g=incidentGps;
     if(!incidentRouteId||!g)return;
@@ -174,6 +203,19 @@ $("snapBtn").onclick=async()=>{
     alert("Negocio enviado al supervisor para aprobación.");await load();
   }
 };
+
+$("reprogramContinue").onclick=async()=>{
+  const id=reprogramVisitId,g=pendingGps[id];
+  const when=$("reprogramFor").value;
+  if(!id||!g)return alert("Primero obtén GPS en la visita.");
+  if(!when||new Date(when)<=new Date())return alert("Selecciona una fecha y hora futura.");
+  currentMode="reprogram";currentVisitId=id;
+  $("camTitle").textContent="🕒 Evidencia del intento no realizado";
+  $("camGpsStatus").innerHTML=gpsHtml(g);
+  $("reprogramModal").classList.add("hidden");
+  await startCamera();
+};
+$("reprogramCancel").onclick=()=>{$("reprogramModal").classList.add("hidden");reprogramVisitId=null};
 
 $("incidentContinue").onclick=async()=>{
   try{
