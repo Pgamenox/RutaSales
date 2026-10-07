@@ -19,13 +19,14 @@ function renderVisits(){
    const gps=(v.lat!=null&&v.lng!=null)?'<div class="small">📍 '+Number(v.lat).toFixed(6)+', '+Number(v.lng).toFixed(6)+' · ±'+Math.round(v.accuracy||0)+' m</div>':'';
    const photo=v.has_photo?'<div><button class="light" onclick="loadVisitPhoto(\''+v.id+'\',this)">📷 Ver evidencia</button><div id="photo_'+v.id+'"></div></div>':'';
    const stamp=v.completed_at?'<div class="small">Hora servidor: '+new Date(v.completed_at).toLocaleString()+'</div>':'';
-   return '<div class="visit"><b>'+esc(v.customer_name)+'</b> <span class="badge">'+esc(v.status)+'</span><div class="small">'+esc(routeName(v.route_id))+' · '+esc(sellerName(v.seller_id))+' · '+esc(v.visit_date)+'</div>'+gps+stamp+zone(v).html+photo+'</div>';
+   return '<div class="visit"><b>'+esc(v.customer_name)+'</b> <span class="badge">'+esc(v.status)+'</span><div class="small">'+esc(routeName(v.route_id))+' · '+esc(sellerName(v.seller_id))+' · '+esc(v.visit_date)+' · Intento '+(v.attempt_no||1)+'</div>'+(v.reprogram_reason?'<div class="small">Reprogramación: '+esc(v.reprogram_reason)+'</div>':'')+gps+stamp+zone(v).html+photo+'</div>';
  }).join(""):'<div class="small">Sin visitas en este filtro.</div>';
 }
 function fillSelectors(){
  const rv=$("route").value,sv=$("seller").value,cv=$("customer").value;
  $("route").innerHTML=routes.map(r=>'<option value="'+r.id+'">'+esc(r.name)+'</option>').join("");
  $("seller").innerHTML=sellers.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join("");
+ if($("pdfSeller"))$("pdfSeller").innerHTML=sellers.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join("");
  $("customer").innerHTML=customers.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join("");
  if(routes.some(x=>x.id===rv))$("route").value=rv;
  if(sellers.some(x=>x.id===sv))$("seller").value=sv;
@@ -63,7 +64,7 @@ async function load(){
    supabase.from("rs_sellers").select("*").eq("active",true).order("name"),
    supabase.from("rs_routes").select("*").eq("active",true).order("name"),
    supabase.from("rs_customers").select("*").eq("active",true).order("name"),
-   supabase.from("rs_visits").select("id,route_id,seller_id,customer_id,customer_name,address,visit_date,status,result,lat,lng,accuracy,started_at,completed_at,original_seller_id,created_at,evidence_source,device_captured_at,target_lat,target_lng,allowed_radius_m,distance_m,within_zone",{count:"exact"}).eq("visit_date",($("historyDate")?.value||today())).order("created_at",{ascending:false}).range(page*PAGE_SIZE,page*PAGE_SIZE+PAGE_SIZE-1),
+   supabase.from("rs_visits").select("id,route_id,seller_id,customer_id,customer_name,address,visit_date,status,result,lat,lng,accuracy,started_at,completed_at,original_seller_id,created_at,evidence_source,device_captured_at,target_lat,target_lng,allowed_radius_m,distance_m,within_zone,parent_visit_id,attempt_no,reprogrammed_for,reprogram_reason",{count:"exact"}).eq("visit_date",($("historyDate")?.value||today())).order("created_at",{ascending:false}).range(page*PAGE_SIZE,page*PAGE_SIZE+PAGE_SIZE-1),
    supabase.from("rs_incidents").select("id,route_id,seller_id,incident_type,details,lat,lng,accuracy,captured_at,resolved,reassigned_to,created_at,resolved_at,resolution_note,proposal_name,proposal_address,approved_customer_id").order("created_at",{ascending:false}).limit(50),
    supabase.from("rs_reassignments").select("*").order("created_at",{ascending:false}).limit(50)
  ]);
@@ -159,4 +160,46 @@ window.loadIncidentPhoto=async(id,btn)=>{
  const box=$("incphoto_"+id);
  if(box)box.innerHTML=data?.photo_data?'<img src="'+data.photo_data+'" alt="Evidencia" loading="lazy" style="width:100%;max-width:300px;border-radius:10px;margin-top:8px">':'<div class="small">Sin fotografía.</div>';
  if(btn)btn.remove();
+};
+
+if($("pdfDate"))$("pdfDate").value=today();
+if($("downloadPdf"))$("downloadPdf").onclick=async()=>{
+ const sellerId=$("pdfSeller").value,date=$("pdfDate").value||today();
+ if(!sellerId)return $("pdfMsg").textContent="Selecciona un vendedor.";
+ $("pdfMsg").textContent="Generando PDF…";
+ const {data,error}=await supabase.from("rs_visits")
+   .select("customer_name,address,visit_date,status,result,accuracy,distance_m,within_zone,completed_at,created_at,attempt_no,reprogram_reason,evidence_source")
+   .eq("seller_id",sellerId).eq("visit_date",date).order("created_at");
+ if(error){$("pdfMsg").textContent="No se pudo generar: "+error.message;return}
+ const seller=sellers.find(s=>s.id===sellerId);
+ try{
+   const {jsPDF}=await import("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm");
+   const doc=new jsPDF({unit:"mm",format:"a4"});
+   const rows=data||[];
+   const counts={
+     total:rows.length,
+     done:rows.filter(x=>x.status==="COMPLETADA").length,
+     pending:rows.filter(x=>x.status==="PENDIENTE").length,
+     reprogram:rows.filter(x=>x.status==="REPROGRAMADA").length,
+     out:rows.filter(x=>Number.isFinite(Number(x.distance_m))&&Number(x.distance_m)>250).length
+   };
+   doc.setFontSize(16);doc.text("RutaSales — Reporte diario",14,16);
+   doc.setFontSize(10);
+   doc.text("Supervisor: "+account.full_name,14,24);
+   doc.text("Vendedor: "+(seller?.name||"Vendedor"),14,30);
+   doc.text("Fecha: "+date,14,36);
+   doc.text("Visitas: "+counts.total+"   Completadas: "+counts.done+"   Pendientes: "+counts.pending+"   Reprogramadas: "+counts.reprogram+"   Fuera de zona: "+counts.out,14,44);
+   let y=54;
+   rows.forEach((r,idx)=>{
+     if(y>280){doc.addPage();y=16}
+     const dist=Number.isFinite(Number(r.distance_m))?Math.round(Number(r.distance_m))+" m":"sin distancia";
+     const line=(idx+1)+". "+(r.customer_name||"Cliente")+" | "+(r.status||"")+" | intento "+(r.attempt_no||1)+" | "+dist+(r.evidence_source?" | evidencia":"");
+     const split=doc.splitTextToSize(line,180);
+     doc.text(split,14,y);y+=split.length*5;
+     if(r.reprogram_reason){const rr=doc.splitTextToSize("Motivo: "+r.reprogram_reason,174);doc.text(rr,18,y);y+=rr.length*5}
+     y+=2;
+   });
+   doc.save("RutaSales_"+(seller?.name||"vendedor").replace(/[^a-z0-9]+/gi,"_")+"_"+date+".pdf");
+   $("pdfMsg").textContent="✅ PDF generado.";
+ }catch(e){$("pdfMsg").textContent="No se pudo crear el PDF: "+e.message}
 };
