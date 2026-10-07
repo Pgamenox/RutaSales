@@ -10,8 +10,8 @@
 <body>
 <header><h1>RutaSales</h1><div class="sub">BETA MUESTRA 1.4 · Supervisor · DEMO COMERCIAL v18</div></header>
 <main>
-  <div class="card">
-    <b>Panel Supervisor</b>
+  <div class="card" id="rolePanel">
+    <b id="roleTitle">Panel Supervisor</b>
     <div class="small">Cada evidencia debe mostrar foto, GPS, precisión y hora servidor.</div>
     <button id="refreshData" class="light" type="button">🔄 Actualizar datos</button>
   </div>
@@ -21,7 +21,7 @@
     <div class="card"><div class="small">Visitas</div><h2 id="kVisits">0</h2></div><div class="card"><div class="small">Pendientes</div><h2 id="kPendingVisits">0</h2></div><div class="card"><div class="small">Completadas</div><h2 id="kCompletedVisits">0</h2></div><div class="card"><div class="small">Altas por aprobar</div><h2 id="kProposals">0</h2></div>
     <div class="card"><div class="small">Contingencias</div><h2 id="kIncidents">0</h2></div><div class="card"><div class="small">Visitas válidas</div><h2 id="kValid">0</h2></div><div class="card"><div class="small">Revisar</div><h2 id="kReview">0</h2></div><div class="card"><div class="small">Fuera de zona</div><h2 id="kOutZone">0</h2></div>
   </div>
-  <div class="card">
+  <div class="card" id="assignCard">
     <b>Asignar visita</b>
     <div class="row"><div><label>Ruta</label><select id="route"></select></div><div><label>Vendedor</label><select id="seller"></select></div></div>
     <div class="row"><div><label>Cliente del catálogo</label><select id="customer"></select></div><div><label>Fecha</label><input id="date" type="date"></div></div>
@@ -29,12 +29,12 @@
     <button id="saveVisit" type="button">Asignar visita</button>
     <div id="saveMsg" class="small"></div>
   </div>
-  <div class="card">
+  <div class="card" id="proposalCard">
   <b>🆕 Negocios propuestos por vendedores</b>
   <div class="small" style="margin:6px 0 10px">Revisa GPS, foto y referencia antes de convertirlos en clientes oficiales.</div>
   <div id="proposalList">Cargando…</div>
 </div>
-<div class="card">
+<div class="card" id="customerCard">
   <b>Catálogo de clientes</b>
   <div class="small" style="margin:6px 0 10px">Guarda una vez el negocio con su GPS real. Las visitas futuras heredarán automáticamente ese punto.</div>
   <div class="row"><div><label>Nombre</label><input id="newCustomerName" type="text"></div><div><label>Dirección</label><input id="newCustomerAddress" type="text"></div></div>
@@ -58,6 +58,17 @@
   <div class="card"><b>↔️ Historial de reasignaciones</b><div id="reassignList">Cargando…</div></div>
 </main>
 <script>
+const CENTRAL_MODE=new URLSearchParams(location.search).get("modo")==="central";
+if(CENTRAL_MODE){
+ document.title="RutaSales Central Demo";
+ const sub=document.querySelector("header .sub");
+ if(sub)sub.textContent="MODO DEMO · CENTRAL DE OPERACIONES · SIN CONTRASEÑA";
+ const title=document.getElementById("roleTitle");
+ if(title)title.textContent="Central de Operaciones";
+ const desc=document.querySelector("#rolePanel .small");
+ if(desc)desc.textContent="Vista global de rutas, vendedores, clientes, visitas, evidencias, incidencias y reasignaciones.";
+ ["assignCard","proposalCard","customerCard"].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none";});
+}
 const BASE="https://ezfqvhoprfstcmdiflcm.supabase.co/rest/v1/";
 const KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6ZnF2aG9wcmZzdGNtZGlmbGNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMjUyMjUsImV4cCI6MjEwNjgwMTIyNX0.j-HOi4cgIwKZmpJ10ZX2bAW6a2zNaCgT-BSA2P1lYVc";
 const SUP="xrE8K-1lI6GxphDjPton6HC4-iTKN14u";
