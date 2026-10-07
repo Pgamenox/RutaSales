@@ -1,6 +1,7 @@
 import {supabase,$,esc,requireRole,logout} from "./common.js";
 
-let account=null,sellers=[],routes=[],customers=[],visits=[],incidents=[],reassignments=[],filter="all";
+let account=null,sellers=[],routes=[],customers=[],visits=[],incidents=[],reassignments=[],filter="all",page=0,totalVisits=0;
+const PAGE_SIZE=25;
 const today=()=>new Date().toISOString().slice(0,10);
 const routeName=id=>routes.find(x=>x.id===id)?.name||"Ruta";
 const sellerName=id=>sellers.find(x=>x.id===id)?.name||"Vendedor";
@@ -16,7 +17,7 @@ function renderVisits(){
  const list=filter==="all"?visits:visits.filter(v=>zone(v).key===filter);
  $("visitsList").innerHTML=list.length?list.map(v=>{
    const gps=(v.lat!=null&&v.lng!=null)?'<div class="small">📍 '+Number(v.lat).toFixed(6)+', '+Number(v.lng).toFixed(6)+' · ±'+Math.round(v.accuracy||0)+' m</div>':'';
-   const photo=v.photo_data?'<img src="'+v.photo_data+'" alt="Evidencia" style="width:100%;max-width:300px;border-radius:10px;margin-top:8px">':'';
+   const photo=v.has_photo?'<div><button class="light" onclick="loadVisitPhoto(\''+v.id+'\',this)">📷 Ver evidencia</button><div id="photo_'+v.id+'"></div></div>':'';
    const stamp=v.completed_at?'<div class="small">Hora servidor: '+new Date(v.completed_at).toLocaleString()+'</div>':'';
    return '<div class="visit"><b>'+esc(v.customer_name)+'</b> <span class="badge">'+esc(v.status)+'</span><div class="small">'+esc(routeName(v.route_id))+' · '+esc(sellerName(v.seller_id))+' · '+esc(v.visit_date)+'</div>'+gps+stamp+zone(v).html+photo+'</div>';
  }).join(""):'<div class="small">Sin visitas en este filtro.</div>';
@@ -62,13 +63,16 @@ async function load(){
    supabase.from("rs_sellers").select("*").eq("active",true).order("name"),
    supabase.from("rs_routes").select("*").eq("active",true).order("name"),
    supabase.from("rs_customers").select("*").eq("active",true).order("name"),
-   supabase.from("rs_visits").select("*").order("created_at",{ascending:false}),
+   supabase.from("rs_visits").select("id,route_id,seller_id,customer_id,customer_name,address,visit_date,status,result,lat,lng,accuracy,started_at,completed_at,original_seller_id,created_at,evidence_source,device_captured_at,target_lat,target_lng,allowed_radius_m,distance_m,within_zone,photo_data",{count:"exact"}).eq("visit_date",($("historyDate")?.value||today())).order("created_at",{ascending:false}).range(page*PAGE_SIZE,page*PAGE_SIZE+PAGE_SIZE-1),
    supabase.from("rs_incidents").select("*").order("created_at",{ascending:false}),
    supabase.from("rs_reassignments").select("*").order("created_at",{ascending:false})
  ]);
  const err=[sr,rr,cr,vr,ir,hr].find(x=>x.error)?.error;
  if(err){$("visitsList").innerHTML='<div class="danger">'+esc(err.message)+'</div>';return}
- sellers=sr.data||[];routes=rr.data||[];customers=cr.data||[];visits=vr.data||[];incidents=ir.data||[];reassignments=hr.data||[];
+ sellers=sr.data||[];routes=rr.data||[];customers=cr.data||[];visits=(vr.data||[]).map(v=>({...v,has_photo:!!v.photo_data,photo_data:null}));totalVisits=vr.count||0;incidents=ir.data||[];reassignments=hr.data||[];
+ if($("pageInfo"))$("pageInfo").textContent=(page+1)+" / "+Math.max(1,Math.ceil(totalVisits/PAGE_SIZE));
+ if($("prevPage"))$("prevPage").disabled=page===0;
+ if($("nextPage"))$("nextPage").disabled=(page+1)*PAGE_SIZE>=totalVisits;
  $("kSellers").textContent=sellers.length;$("kRoutes").textContent=routes.length;$("kVisits").textContent=visits.length;
  $("kPending").textContent=visits.filter(v=>v.status==="PENDIENTE").length;$("kDone").textContent=visits.filter(v=>v.status==="COMPLETADA").length;
  $("kProposals").textContent=incidents.filter(i=>i.incident_type==="NUEVO CLIENTE"&&!i.resolved).length;
@@ -133,3 +137,17 @@ $("refresh").onclick=load;$("logout").onclick=logout;
 document.querySelectorAll(".zoneFilter").forEach(b=>b.onclick=()=>{filter=b.dataset.filter;renderVisits()});
 $("date").value=today();
 load();
+window.loadVisitPhoto=async(id,btn)=>{
+ if(btn)btn.disabled=true;
+ const {data,error}=await supabase.from("rs_visits").select("photo_data").eq("id",id).single();
+ if(error){if(btn)btn.disabled=false;return alert("No se pudo cargar la evidencia: "+error.message)}
+ const box=$("photo_"+id);
+ if(box)box.innerHTML=data?.photo_data?'<img src="'+data.photo_data+'" alt="Evidencia" loading="lazy" style="width:100%;max-width:300px;border-radius:10px;margin-top:8px">':'<div class="small">Sin fotografía.</div>';
+ if(btn)btn.remove();
+};
+if($("historyDate")){
+ $("historyDate").value=today();
+ $("historyDate").onchange=()=>{page=0;load()};
+}
+if($("prevPage"))$("prevPage").onclick=()=>{if(page>0){page--;load()}};
+if($("nextPage"))$("nextPage").onclick=()=>{if((page+1)*PAGE_SIZE<totalVisits){page++;load()}};
