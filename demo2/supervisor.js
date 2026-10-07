@@ -63,17 +63,17 @@ async function load(){
    supabase.from("rs_sellers").select("*").eq("active",true).order("name"),
    supabase.from("rs_routes").select("*").eq("active",true).order("name"),
    supabase.from("rs_customers").select("*").eq("active",true).order("name"),
-   supabase.from("rs_visits").select("id,route_id,seller_id,customer_id,customer_name,address,visit_date,status,result,lat,lng,accuracy,started_at,completed_at,original_seller_id,created_at,evidence_source,device_captured_at,target_lat,target_lng,allowed_radius_m,distance_m,within_zone,photo_data",{count:"exact"}).eq("visit_date",($("historyDate")?.value||today())).order("created_at",{ascending:false}).range(page*PAGE_SIZE,page*PAGE_SIZE+PAGE_SIZE-1),
+   supabase.from("rs_visits").select("id,route_id,seller_id,customer_id,customer_name,address,visit_date,status,result,lat,lng,accuracy,started_at,completed_at,original_seller_id,created_at,evidence_source,device_captured_at,target_lat,target_lng,allowed_radius_m,distance_m,within_zone",{count:"exact"}).eq("visit_date",($("historyDate")?.value||today())).order("created_at",{ascending:false}).range(page*PAGE_SIZE,page*PAGE_SIZE+PAGE_SIZE-1),
    supabase.from("rs_incidents").select("*").order("created_at",{ascending:false}),
    supabase.from("rs_reassignments").select("*").order("created_at",{ascending:false})
  ]);
  const err=[sr,rr,cr,vr,ir,hr].find(x=>x.error)?.error;
  if(err){$("visitsList").innerHTML='<div class="danger">'+esc(err.message)+'</div>';return}
- sellers=sr.data||[];routes=rr.data||[];customers=cr.data||[];visits=(vr.data||[]).map(v=>({...v,has_photo:!!v.photo_data,photo_data:null}));totalVisits=vr.count||0;incidents=ir.data||[];reassignments=hr.data||[];
+ sellers=sr.data||[];routes=rr.data||[];customers=cr.data||[];visits=(vr.data||[]).map(v=>({...v,has_photo:!!v.evidence_source}));totalVisits=vr.count||0;incidents=ir.data||[];reassignments=hr.data||[];
  if($("pageInfo"))$("pageInfo").textContent=(page+1)+" / "+Math.max(1,Math.ceil(totalVisits/PAGE_SIZE));
  if($("prevPage"))$("prevPage").disabled=page===0;
  if($("nextPage"))$("nextPage").disabled=(page+1)*PAGE_SIZE>=totalVisits;
- $("kSellers").textContent=sellers.length;$("kRoutes").textContent=routes.length;$("kVisits").textContent=visits.length;
+ $("kSellers").textContent=sellers.length;$("kRoutes").textContent=routes.length;$("kVisits").textContent=totalVisits;
  $("kPending").textContent=visits.filter(v=>v.status==="PENDIENTE").length;$("kDone").textContent=visits.filter(v=>v.status==="COMPLETADA").length;
  $("kProposals").textContent=incidents.filter(i=>i.incident_type==="NUEVO CLIENTE"&&!i.resolved).length;
  $("kIncidents").textContent=incidents.filter(i=>i.incident_type!=="NUEVO CLIENTE"&&!i.resolved).length;
