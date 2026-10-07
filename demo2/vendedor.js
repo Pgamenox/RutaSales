@@ -103,19 +103,36 @@ function closeCamera(){
   $("camModal").classList.add("hidden");
   currentVisitId=null;
 }
-function snapshot(){
+async function snapshot(){
   const v=$("video");
   if(!v.videoWidth)throw new Error("La cámara aún no está lista.");
-  const canvas=document.createElement("canvas");
-  const w=Math.min(640,v.videoWidth),h=Math.round(v.videoHeight*(w/v.videoWidth));
-  canvas.width=w;canvas.height=h;
-  canvas.getContext("2d").drawImage(v,0,0,w,h);
-  return canvas.toDataURL("image/jpeg",.56);
+  let w=Math.min(1600,v.videoWidth),h=Math.round(v.videoHeight*(w/v.videoWidth));
+  let quality=.78;
+  const targetBytes=600*1024;
+  const minQuality=.55;
+  const encode=()=>{
+    const canvas=document.createElement("canvas");
+    canvas.width=w;canvas.height=h;
+    canvas.getContext("2d").drawImage(v,0,0,w,h);
+    return canvas.toDataURL("image/jpeg",quality);
+  };
+  const bytes=data=>Math.ceil((data.length-(data.indexOf(",")+1))*0.75);
+  let data=encode();
+  while(bytes(data)>targetBytes&&quality>minQuality){
+    quality=Math.max(minQuality,quality-.07);
+    data=encode();
+  }
+  while(bytes(data)>800*1024&&w>900){
+    w=Math.round(w*.82);h=Math.round(v.videoHeight*(w/v.videoWidth));quality=.68;
+    data=encode();
+  }
+  if(bytes(data)>900*1024)throw new Error("La fotografía sigue siendo demasiado pesada. Intenta nuevamente.");
+  return data;
 }
 
 $("snapBtn").onclick=async()=>{
   let photo;
-  try{photo=snapshot()}catch(e){return alert(e.message)}
+  try{photo=await snapshot()}catch(e){return alert(e.message)}
 
   if(currentMode==="visit"){
     const id=currentVisitId,g=pendingGps[id];
