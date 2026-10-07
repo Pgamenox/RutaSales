@@ -41,7 +41,11 @@ async function load(){
  $("newSupervisor").innerHTML=sups.map(s=>'<option value="'+s.user_id+'">'+esc(s.full_name)+'</option>').join("");
  const resettable=accounts.filter(x=>x.role!=="CENTRAL"&&x.active);
  $("resetUser").innerHTML=resettable.map(x=>'<option value="'+x.user_id+'">'+esc(x.full_name)+' · '+x.role+'</option>').join("");
- $("users").innerHTML=accounts.map(x=>'<div class="visit"><b>'+esc(x.full_name)+'</b> <span class="badge">'+x.role+'</span><div class="small">'+(x.active?"ACTIVO":"INACTIVO")+(x.role==="VENDEDOR"?" · ocupa 1 de 12 licencias":"")+'</div></div>').join("")||'<div class="small">Sin usuarios.</div>';
+ $("users").innerHTML=accounts.map(x=>{
+ const seller=x.role==="VENDEDOR"&&x.seller_id?((accounts.filter(a=>a.role==="VENDEDOR"&&a.active&&a.seller_id&&a.seller_id!==x.seller_id).map(a=>'<option value="'+a.seller_id+'">'+esc(a.full_name)+'</option>').join(""))):"";
+ const deactivate=(x.role==="VENDEDOR"&&x.active&&x.seller_id)?'<div style="margin-top:8px"><label>Reasignar pendientes a</label><select id="replace_'+x.seller_id+'"><option value="">Dejar sin reasignar</option>'+seller+'</select><button class="light" onclick="deactivateSeller(\''+x.user_id+'\',\''+x.seller_id+'\',\''+esc(x.full_name).replace(/'/g,"&#39;")+'\')">Desactivar vendedor</button></div>':"";
+ return '<div class="visit"><b>'+esc(x.full_name)+'</b> <span class="badge">'+x.role+'</span><div class="small">'+(x.active?"ACTIVO":"INACTIVO")+(x.role==="VENDEDOR"?" · ocupa 1 de 12 licencias":"")+'</div>'+deactivate+'</div>';
+}).join("")||'<div class="small">Sin usuarios.</div>';
  $("routes").innerHTML=routes.map(r=>'<div class="visit"><b>'+esc(r.name)+'</b><select id="route_'+r.id+'"><option value="">Sin supervisor</option>'+sups.map(s=>'<option value="'+s.user_id+'" '+(r.supervisor_user_id===s.user_id?"selected":"")+'>'+esc(s.full_name)+'</option>').join("")+'</select><button onclick="assignRoute(\''+r.id+'\')">Guardar asignación</button></div>').join("");
 }
 $("newRole").onchange=()=>{$("supWrap").style.display=$("newRole").value==="VENDEDOR"?"block":"none"};
@@ -59,6 +63,26 @@ $("createUser").onclick=async()=>{
  $("createMsg").textContent="Usuario creado."; $("newName").value="";$("newEmail").value="";$("newPass").value="";await load();
 };
 window.assignRoute=async id=>{const val=$("route_"+id).value||null;const {error}=await supabase.from("rs_routes").update({supervisor_user_id:val}).eq("id",id);if(error)alert(error.message);else await load()};
+window.deactivateSeller=async(userId,sellerId,name)=>{
+ if(!confirm("¿Desactivar a "+name+"? El historial se conservará."))return;
+ const replacement=$("replace_"+sellerId)?.value||null;
+ const {data:pending,error:pe}=await supabase.from("rs_visits").select("id,original_seller_id").eq("seller_id",sellerId).in("status",["PENDIENTE","REPROGRAMADA"]);
+ if(pe)return alert("No se pudieron consultar pendientes: "+pe.message);
+ if((pending||[]).length&&replacement){
+   for(const v of pending){
+     const {error}=await supabase.from("rs_visits").update({seller_id:replacement,original_seller_id:v.original_seller_id||sellerId}).eq("id",v.id);
+     if(error)return alert("No se pudo reasignar una visita: "+error.message);
+   }
+   const {error:he}=await supabase.from("rs_reassignments").insert({from_seller_id:sellerId,to_seller_id:replacement,pending_count:(pending||[]).length,reason:"Baja/desactivación de vendedor desde Central"});
+   if(he)return alert("Las visitas se movieron, pero falló el historial: "+he.message);
+ }
+ const {error:se}=await supabase.from("rs_sellers").update({active:false}).eq("id",sellerId);
+ if(se)return alert("No se pudo desactivar vendedor: "+se.message);
+ const {error:ae}=await supabase.from("rs_accounts").update({active:false}).eq("user_id",userId);
+ if(ae)return alert("Vendedor desactivado, pero no se pudo cerrar su acceso: "+ae.message);
+ alert("Vendedor desactivado. Historial conservado. Pendientes reasignados: "+(replacement?(pending||[]).length:0));
+ await load();
+};
 window.resetPassword=async(userId,name)=>{
  const p=prompt("Nueva contraseña temporal para "+name+" (mínimo 8 caracteres):");
  if(!p)return;
