@@ -16,6 +16,14 @@
 <button id="proposalContinue">📍 Obtener GPS y tomar foto</button><button id="proposalCancel" class="light">Cancelar</button>
 </div></div>
 
+<div id="reprogramModal" class="modal hidden"><div class="modalbox">
+<b>🕒 Cliente no disponible / Reprogramar</b>
+<label>Nueva fecha y hora</label><input id="reprogramFor" type="datetime-local">
+<label>Motivo</label><textarea id="reprogramReason" rows="3" placeholder="Ej. Cliente pidió regresar por la tarde"></textarea>
+<div class="small">Se guardará este intento con GPS + foto y se creará un nuevo intento pendiente.</div>
+<button id="reprogramContinue">📷 Tomar evidencia y reprogramar</button><button id="reprogramCancel" class="light">Cancelar</button>
+</div></div>
+
 <div id="incidentModal" class="modal hidden"><div class="modalbox">
 <b>🚨 Reportar imprevisto</b>
 <label>Tipo</label><select id="incidentType">
