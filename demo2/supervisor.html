@@ -28,6 +28,11 @@
 <div class="card"><b>Mis vendedores</b><div id="sellerList">Cargando…</div></div>
 <div class="card"><b>Mis rutas</b><div id="routeList">Cargando…</div></div>
 
+<div class="card"><b>📄 Reporte diario por vendedor</b>
+<div class="row"><div><label>Vendedor</label><select id="pdfSeller"></select></div><div><label>Fecha</label><input id="pdfDate" type="date"></div></div>
+<button id="downloadPdf">Descargar PDF diario</button><div id="pdfMsg" class="small"></div>
+</div>
+
 <div class="card"><b>Visitas registradas</b>
 <div class="small">Regla comercial: 0–100 m válida · 101–250 m revisar · más de 250 m fuera de zona.</div>
 <div class="row"><div><label>Fecha</label><input id="historyDate" type="date"></div><div><label>Página</label><div><button id="prevPage" class="light">← Anterior</button><span id="pageInfo" class="small" style="padding:0 10px">1</span><button id="nextPage" class="light">Siguiente →</button></div></div></div>
