@@ -39,7 +39,7 @@ function updateCustomerInfo(){
 function renderProposals(){
  const proposals=incidents.filter(i=>i.incident_type==="NUEVO CLIENTE");
  $("proposalList").innerHTML=proposals.length?proposals.map(i=>{
-  const photo=i.photo_data?'<img src="'+i.photo_data+'" alt="Negocio" style="width:100%;max-width:300px;border-radius:10px;margin-top:8px">':'';
+  const photo='<div><button class="light" onclick="loadIncidentPhoto(\''+i.id+'\',this)">📷 Ver evidencia</button><div id="incphoto_'+i.id+'"></div></div>';
   const status=i.resolved?(i.resolution_note==="APROBADO"?"✅ APROBADO":"❌ "+esc(i.resolution_note||"REVISADO")):"⏳ PENDIENTE";
   const buttons=!i.resolved?'<button onclick="approveProposal(\''+i.id+'\')">✅ Aprobar y guardar cliente</button><button class="light" onclick="rejectProposal(\''+i.id+'\')">❌ Rechazar</button>':'';
   return '<div class="visit"><b>➕ '+esc(i.proposal_name||"Negocio nuevo")+'</b> <span class="badge">'+status+'</span><div class="small">Vendedor: '+esc(sellerName(i.seller_id))+' · Ruta: '+esc(routeName(i.route_id))+'</div><div>'+esc(i.proposal_address||"Sin referencia")+'</div><div class="small">GPS '+Number(i.lat).toFixed(6)+', '+Number(i.lng).toFixed(6)+' · ±'+Math.round(i.accuracy||0)+' m</div>'+photo+buttons+'</div>';
@@ -48,7 +48,7 @@ function renderProposals(){
 function renderIncidents(){
  const normal=incidents.filter(i=>i.incident_type!=="NUEVO CLIENTE");
  $("incidentsList").innerHTML=normal.length?normal.map(i=>{
-   const photo=i.photo_data?'<img src="'+i.photo_data+'" alt="Evidencia" style="width:100%;max-width:300px;border-radius:10px;margin-top:8px">':'';
+   const photo='<div><button class="light" onclick="loadIncidentPhoto(\''+i.id+'\',this)">📷 Ver evidencia</button><div id="incphoto_'+i.id+'"></div></div>';
    const others=sellers.filter(s=>s.id!==i.seller_id);
    const controls=!i.resolved?'<select id="to_'+i.id+'">'+others.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join("")+'</select><button onclick="reassignIncident(\''+i.id+'\',\''+i.route_id+'\',\''+i.seller_id+'\')">↔️ Reasignar pendientes</button><button class="light" onclick="resolveIncident(\''+i.id+'\')">✅ Atendido sin reasignación</button>':'<div class="ok">Resuelto: '+esc(i.resolution_note||"Atendido")+'</div>';
    return '<div class="visit"><b>🚨 '+esc(i.incident_type)+'</b><div class="small">'+esc(sellerName(i.seller_id))+' · '+esc(routeName(i.route_id))+'</div><div>'+esc(i.details||"")+'</div><div class="small">GPS '+Number(i.lat).toFixed(6)+', '+Number(i.lng).toFixed(6)+' · ±'+Math.round(i.accuracy||0)+' m</div>'+photo+controls+'</div>';
@@ -64,8 +64,8 @@ async function load(){
    supabase.from("rs_routes").select("*").eq("active",true).order("name"),
    supabase.from("rs_customers").select("*").eq("active",true).order("name"),
    supabase.from("rs_visits").select("id,route_id,seller_id,customer_id,customer_name,address,visit_date,status,result,lat,lng,accuracy,started_at,completed_at,original_seller_id,created_at,evidence_source,device_captured_at,target_lat,target_lng,allowed_radius_m,distance_m,within_zone",{count:"exact"}).eq("visit_date",($("historyDate")?.value||today())).order("created_at",{ascending:false}).range(page*PAGE_SIZE,page*PAGE_SIZE+PAGE_SIZE-1),
-   supabase.from("rs_incidents").select("*").order("created_at",{ascending:false}),
-   supabase.from("rs_reassignments").select("*").order("created_at",{ascending:false})
+   supabase.from("rs_incidents").select("id,route_id,seller_id,incident_type,details,lat,lng,accuracy,captured_at,resolved,reassigned_to,created_at,resolved_at,resolution_note,proposal_name,proposal_address,approved_customer_id").order("created_at",{ascending:false}).limit(50),
+   supabase.from("rs_reassignments").select("*").order("created_at",{ascending:false}).limit(50)
  ]);
  const err=[sr,rr,cr,vr,ir,hr].find(x=>x.error)?.error;
  if(err){$("visitsList").innerHTML='<div class="danger">'+esc(err.message)+'</div>';return}
@@ -151,3 +151,12 @@ if($("historyDate")){
 }
 if($("prevPage"))$("prevPage").onclick=()=>{if(page>0){page--;load()}};
 if($("nextPage"))$("nextPage").onclick=()=>{if((page+1)*PAGE_SIZE<totalVisits){page++;load()}};
+
+window.loadIncidentPhoto=async(id,btn)=>{
+ if(btn)btn.disabled=true;
+ const {data,error}=await supabase.from("rs_incidents").select("photo_data").eq("id",id).single();
+ if(error){if(btn)btn.disabled=false;return alert("No se pudo cargar la evidencia: "+error.message)}
+ const box=$("incphoto_"+id);
+ if(box)box.innerHTML=data?.photo_data?'<img src="'+data.photo_data+'" alt="Evidencia" loading="lazy" style="width:100%;max-width:300px;border-radius:10px;margin-top:8px">':'<div class="small">Sin fotografía.</div>';
+ if(btn)btn.remove();
+};
