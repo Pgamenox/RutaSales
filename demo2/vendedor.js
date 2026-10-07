@@ -126,7 +126,7 @@ async function snapshot(){
     w=Math.round(w*.82);h=Math.round(v.videoHeight*(w/v.videoWidth));quality=.68;
     data=encode();
   }
-  if(bytes(data)>900*1024)throw new Error("La fotografía sigue siendo demasiado pesada. Intenta nuevamente.");
+  if(bytes(data)>800*1024)throw new Error("La fotografía sigue siendo demasiado pesada. Intenta nuevamente.");
   return data;
 }
 
