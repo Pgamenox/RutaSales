@@ -31,7 +31,7 @@ async function load(){
  const sups=accounts.filter(x=>x.role==="SUPERVISOR"&&x.active),sells=accounts.filter(x=>x.role==="VENDEDOR"&&x.active);sellerCount=sells.length;
  $("kSup").textContent=sups.length;$("kSell").textContent=sells.length;$("kRoutes").textContent=routes.length;$("kVisits").textContent=(v||[]).length;
  $("newSupervisor").innerHTML=sups.map(s=>'<option value="'+s.user_id+'">'+esc(s.full_name)+'</option>').join("");
- $("users").innerHTML=accounts.map(x=>'<div class="visit"><b>'+esc(x.full_name)+'</b> <span class="badge">'+x.role+'</span><div class="small">'+(x.active?"ACTIVO":"INACTIVO")+(x.role==="VENDEDOR"?" · ocupa 1 de 12 licencias":"")+'</div></div>').join("")||'<div class="small">Sin usuarios.</div>';
+ $("users").innerHTML=accounts.map(x=>'<div class="visit"><b>'+esc(x.full_name)+'</b> <span class="badge">'+x.role+'</span><div class="small">'+(x.active?"ACTIVO":"INACTIVO")+(x.role==="VENDEDOR"?" · ocupa 1 de 12 licencias":"")+'</div>'+(x.role!=="CENTRAL"?'<button class="light" onclick="resetPassword(\\\''+x.user_id+'\\\',\\\''+esc(x.full_name)+'\\\')">🔑 Restablecer contraseña</button>':'')+'</div>').join("")||'<div class="small">Sin usuarios.</div>';
  $("routes").innerHTML=routes.map(r=>'<div class="visit"><b>'+esc(r.name)+'</b><select id="route_'+r.id+'"><option value="">Sin supervisor</option>'+sups.map(s=>'<option value="'+s.user_id+'" '+(r.supervisor_user_id===s.user_id?"selected":"")+'>'+esc(s.full_name)+'</option>').join("")+'</select><button onclick="assignRoute(\''+r.id+'\')">Guardar asignación</button></div>').join("");
 }
 $("newRole").onchange=()=>{$("supWrap").style.display=$("newRole").value==="VENDEDOR"?"block":"none"};
@@ -49,5 +49,14 @@ $("createUser").onclick=async()=>{
  $("createMsg").textContent="Usuario creado."; $("newName").value="";$("newEmail").value="";$("newPass").value="";await load();
 };
 window.assignRoute=async id=>{const val=$("route_"+id).value||null;const {error}=await supabase.from("rs_routes").update({supervisor_user_id:val}).eq("id",id);if(error)alert(error.message);else await load()};
+window.resetPassword=async(userId,name)=>{
+ const p=prompt("Nueva contraseña temporal para "+name+" (mínimo 8 caracteres):");
+ if(!p)return;
+ if(p.length<8)return alert("La contraseña debe tener al menos 8 caracteres.");
+ const r=await fetch(URL+"/functions/v1/rutasales-reset-password",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY,Authorization:"Bearer "+session.access_token},body:JSON.stringify({target_user_id:userId,new_password:p})});
+ const j=await r.json();
+ if(!r.ok)return alert(j.error||"No se pudo restablecer.");
+ alert("Contraseña restablecida para "+name+".");
+};
 $("refresh").onclick=load;$("logout").onclick=logout;load();
 </script></body></html>
