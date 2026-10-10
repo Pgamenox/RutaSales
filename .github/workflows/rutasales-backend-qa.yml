@@ -2,9 +2,9 @@ name: RutaSales backend QA
 on:
   push:
     branches: [work/rutasales-commercial-2.0]
-    paths: ['demo2/backend-qa/**', '.github/workflows/rutasales-backend-qa.yml']
+    paths: ['demo2/**', '.github/workflows/rutasales-backend-qa.yml']
   pull_request:
-    paths: ['demo2/backend-qa/**', '.github/workflows/rutasales-backend-qa.yml']
+    paths: ['demo2/**', '.github/workflows/rutasales-backend-qa.yml']
   workflow_dispatch:
 permissions:
   contents: read
