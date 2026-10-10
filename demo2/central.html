@@ -52,6 +52,7 @@ async function load(){
  $("routes").innerHTML=routes.map(r=>'<div class="visit"><b>'+esc(r.name)+'</b><select id="route_'+r.id+'"><option value="">Sin supervisor</option>'+sups.map(s=>'<option value="'+s.user_id+'" '+(r.supervisor_user_id===s.user_id?"selected":"")+'>'+esc(s.full_name)+'</option>').join("")+'</select><button onclick="assignRoute(\''+r.id+'\')">Guardar asignación</button></div>').join("");
 }
 $("newRole").onchange=()=>{$("supWrap").style.display=$("newRole").value==="VENDEDOR"?"block":"none"};
+let candidateRequest=null;
 $("createUser").onclick=async()=>{
  $("createMsg").textContent="Creando…";
  const payload={full_name:$("newName").value.trim(),email:$("newEmail").value.trim(),password:$("newPass").value,role:$("newRole").value};
@@ -61,9 +62,10 @@ $("createUser").onclick=async()=>{
    payload.supervisor_user_id=$("newSupervisor").value||null;
    if(!payload.supervisor_user_id){$("createMsg").textContent="Primero crea y selecciona un Supervisor.";return}
  }
+ if(candidateBackend){const signature=JSON.stringify(payload);if(candidateRequest?.signature!==signature)candidateRequest={signature,id:crypto.randomUUID()};payload.request_id=candidateRequest.id;}
  const r=await fetch(URL+"/functions/v1/rutasales-admin-users",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY,Authorization:"Bearer "+session.access_token},body:JSON.stringify(payload)});
  const j=await r.json(); if(!r.ok){$("createMsg").textContent=j.error||"Error";return}
- $("createMsg").textContent="Usuario creado."; $("newName").value="";$("newEmail").value="";$("newPass").value="";await load();
+ candidateRequest=null;$("createMsg").textContent="Usuario creado."; $("newName").value="";$("newEmail").value="";$("newPass").value="";await load();
 };
 window.assignRoute=async id=>{const val=$("route_"+id).value||null;try{if(candidateBackend){await backend.assignRoute(id,val)}else{await updateOne(supabase.from("rs_routes").update({supervisor_user_id:val}).eq("id",id))}await load()}catch(e){alert(e.message)}};
 window.deactivateSeller=async(userId,sellerId)=>{
@@ -86,9 +88,9 @@ window.deactivateSeller=async(userId,sellerId)=>{
  await load();
 };
 window.resetPassword=async(userId,name)=>{
- const p=prompt("Nueva contraseña temporal para "+name+" (mínimo 8 caracteres):");
+ const p=prompt("Nueva contraseña temporal para "+name+" (mínimo "+(candidateBackend?12:8)+" caracteres):");
  if(!p)return;
- if(p.length<8)return alert("La contraseña debe tener al menos 8 caracteres.");
+ if(p.length<(candidateBackend?12:8))return alert("La contraseña debe tener al menos "+(candidateBackend?12:8)+" caracteres.");
  const r=await fetch(URL+"/functions/v1/rutasales-reset-password",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY,Authorization:"Bearer "+session.access_token},body:JSON.stringify({target_user_id:userId,new_password:p})});
  const j=await r.json();
  if(!r.ok)return alert(j.error||"No se pudo restablecer.");

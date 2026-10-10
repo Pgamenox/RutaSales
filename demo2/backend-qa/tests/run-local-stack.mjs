@@ -10,7 +10,7 @@ const command=args=>execFileSync(cli,[...args,'--workdir','.'],{encoding:'utf8',
 let result=1;
 try{
  console.log('Starting disposable LOCAL Supabase: Auth + REST + PostgreSQL');
- command(['start','--exclude','realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor']);
+ command(['start','--exclude','realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,logflare,vector,supavisor']);
  command(['db','reset','--local','--no-seed','--yes']);
  const advisory=spawnSync(cli,['db','advisors','--local','--type','security','--level','warn','--fail-on','error','--output','json','--workdir','.'],{encoding:'utf8',timeout:60000,maxBuffer:8*1024*1024});
  if(advisory.status!==0)throw Object.assign(Error('Local security advisor failed'),{stderr:advisory.stderr});
