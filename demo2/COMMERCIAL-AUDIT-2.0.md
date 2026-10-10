@@ -83,4 +83,4 @@ Modificados: `demo2/central.html`, `common.js`, `index.html`, `supervisor.js`, `
 
 ## Continuación: candidato backend QA
 
-Se añadió [backend-qa/README.md](backend-qa/README.md) con migraciones exclusivas para base vacía, RLS por empresa, licencias, cuota y RPC transaccionales. Se aprobaron 23 pruebas SQL en Postgres embebido; las 2 pruebas de concurrencia nativa están preparadas pero bloqueadas por el entorno. No se aplicó a Supabase existente ni se conectó al frontend. El dictamen NO APTO permanece; [resultados y límites](backend-qa/RESULTS.md).
+Se añadió [backend-qa/README.md](backend-qa/README.md) con migraciones exclusivas para base vacía, RLS por empresa, licencias, cuota y RPC transaccionales. Se aprobaron 23 pruebas SQL embebidas, 23 en PostgreSQL 17.11 nativo y 2 de concurrencia en GitHub Actions ([evidencia](https://github.com/Pgamenox/RutaSales/actions/runs/38090566121)). El bloqueo nativo local se resolvió mediante contenedor temporal de CI. No se aplicó a Supabase existente ni se conectó al frontend. El dictamen NO APTO permanece; [resultados y límites](backend-qa/RESULTS.md).

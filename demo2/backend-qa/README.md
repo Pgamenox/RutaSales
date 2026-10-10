@@ -30,7 +30,7 @@ node --test tests/concurrency.test.mjs
 
 Los comandos se ejecutan en ese orden; no paralelizar los archivos. La suite nativa crea la misma fixture de 23 pruebas. La suite de concurrencia espera ese estado y utiliza varias conexiones, barrera de bloqueo observable en pg_stat_activity y timeouts. Compite por una única plaza cinco veces, y compite por completar/reasignar una visita. No reutilizar otra base ni un usuario de producción.
 
-El intento en este entorno quedó bloqueado: chown no pudo cambiar propietario y runuser no pudo cambiar grupos. PostgreSQL nativo no se inició. No se manipularon esos controles.
+El intento local quedó bloqueado por permisos del entorno. Se resolvió ejecutando el mismo candidato en GitHub Actions con PostgreSQL 17.11 temporal: 23 pruebas nativas y 2 de concurrencia aprobadas. Ver RESULTS.md para run/commit. Las omisiones al ejecutar sin NATIVE_PG_URL siguen siendo explícitas; sólo la ejecución CI con conexiones reales acredita estas carreras.
 
 ## Supabase local o proyecto QA dedicado
 
