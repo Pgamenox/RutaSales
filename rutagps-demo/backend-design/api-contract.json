@@ -1,0 +1,69 @@
+{
+  "version": "1.0-proposal",
+  "deployed": false,
+  "trackingEnabled": false,
+  "billingEnabled": false,
+  "intervalSeconds": 300,
+  "identity": "server-verified company membership or bound device token",
+  "positionRequest": {
+    "deviceId": "uuid",
+    "shiftId": "uuid",
+    "eventId": "uuid idempotency key",
+    "source": [
+      "rutagps",
+      "rutasales",
+      "rutaguard"
+    ],
+    "capturedAt": "RFC3339 UTC",
+    "latitude": "number -90..90",
+    "longitude": "number -180..180",
+    "accuracyM": "nonnegative finite number"
+  },
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/v1/companies",
+      "role": "superadmin"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/companies/{id}/license",
+      "role": "superadmin"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/devices",
+      "role": "central"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/devices/{id}",
+      "role": "central"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/devices/{id}/shifts",
+      "role": "central|assigned supervisor"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/shifts/{id}/close",
+      "role": "central|assigned supervisor"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/positions",
+      "role": "bound device"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/devices/locations",
+      "role": "central|assigned supervisor"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/devices/{id}/positions",
+      "role": "central|assigned supervisor"
+    }
+  ]
+}
