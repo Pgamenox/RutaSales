@@ -61,3 +61,11 @@ Faltan RPC de incidencia/propuesta, reprogramación, asignación de rutas y apro
 Antes de fusionar: ejecutar Auth/JWT reales de los cuatro roles, dos empresas, REST/RPC, cuentas inactivas, límites/vigencias y ambas carreras; asesores Supabase reales; prueba física de GPS/cámara y ciclo completo con el adaptador frontend. Configurar recuperación/MFA/rate limits, analizar logs sin evidencia sensible y medir contención del bloqueo por empresa.
 
 Compatibilidad futura con RutaGPS/RutaGuard: tenant e identificadores externos en contratos versionados; no otorgar acceso directo a bases ajenas. Sin rastreo periódico, cobros ni fotos automáticas.
+
+## Auth y API reales en CI (comprobación independiente)
+
+`tests/run-local-stack.mjs` está restringido a un runner GitHub hospedado y efímero. CLI Supabase 2.120.0 fijado en el lockfile; arranca únicamente PostgreSQL, GoTrue, PostgREST y gateway local. Aplica migraciones con `db reset --local`, comprueba URLs loopback, rechaza un proyecto enlazado y elimina contenedores/volúmenes al terminar. No crea proyectos en la cuenta Supabase ni utiliza sus credenciales.
+
+`tests/auth-api.test.mjs` crea ocho usuarios ficticios mediante Auth admin local, inicia sesiones con contraseña y utiliza JWT firmados por GoTrue para REST/RPC. Incluye sesiones de Central/Supervisor/Vendedor/Superadmin, credenciales incorrectas, JWT adulterado, signup deshabilitado, anon, dos empresas, user_metadata alterado con JWT nuevo, asignación, finalización, vencimiento/renovación y baja con un JWT todavía válido. Las claves y contraseñas temporales no se imprimen ni se guardan en Git.
+
+Estado y evidencia de ejecución: RESULTS.md. No confundir estas pruebas con una validación del frontend publicado, Storage, Edge Functions de alta/reset, protección contra abuso o pruebas físicas. El backend remoto actual sigue intacto.

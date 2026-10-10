@@ -1,5 +1,7 @@
 // Disposable CI local stack only. No linked-project or remote commands.
 import {execFileSync,spawnSync} from 'node:child_process';import {readFileSync,existsSync} from 'node:fs';import {resolve} from 'node:path';import assert from 'node:assert/strict';
+assert.equal(process.env.GITHUB_ACTIONS,'true','Launcher restricted to disposable GitHub CI');
+assert.equal(process.env.RUNNER_ENVIRONMENT,'github-hosted','Requires fresh hosted runner');
 const cli=resolve('node_modules/.bin/supabase');
 assert.match(readFileSync('supabase/config.toml','utf8'),/project_id = "rutasales-backend-qa"/);
 assert.equal(existsSync('supabase/.temp/project-ref'),false,'Never run with a linked project');
