@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {licenseState,canAssign,upgrade} from './license-core.mjs';
+const base={capacity:5,status:'ACTIVE',starts_at:'2026-01-01T00:00:00Z',expires_at:'2027-01-01T00:00:00Z'};
+const now=new Date('2026-10-09T12:00:00Z');
+assert.equal(licenseState(base,now),'ACTIVE');
+assert.equal(licenseState({...base,status:'SUSPENDED'},now),'SUSPENDED');
+assert.equal(licenseState(base,new Date('2027-01-01T00:00:00Z')),'EXPIRED');
+assert.equal(licenseState(base,new Date('2025-12-01T00:00:00Z')),'PENDING');
+assert.equal(licenseState({...base,capacity:13},now),'INVALID');
+assert.deepEqual(canAssign(base,['a','b','c','d','e'],'f',now),{ok:false,reason:'CAPACITY_REACHED'});
+assert.deepEqual(canAssign(base,['a'],'a',now),{ok:false,reason:'ALREADY_ASSIGNED'});
+assert.equal(canAssign(base,['a'],'b',now).ok,true);
+assert.equal(canAssign({...base,status:'SUSPENDED'},[],'a',now).ok,false);
+assert.equal(upgrade(base,12).capacity,12);
+assert.throws(()=>upgrade(base,4),/INVALID_UPGRADE/);
+console.log('PASS: 10 license rule assertions');
