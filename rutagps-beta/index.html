@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RutaGPS · Beta 1.0 Simulador</title>
+<style>
+:root{font-family:system-ui,Arial;color:#e9f5ff;background:#071422}*{box-sizing:border-box}body{margin:0;padding:25px;max-width:1160px;margin:auto}h1{color:#f5a34e}small,p{color:#a9c2d7}.panel{background:#0f2337;border:1px solid #27415c;border-radius:14px;padding:18px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.stat{font-size:28px;font-weight:800;color:#56d3e6}button{background:#f5a34e;color:#091725;border:none;padding:11px 14px;border-radius:8px;font-weight:700;cursor:pointer}button:disabled{opacity:.5}table{border-collapse:collapse;width:100%;font-size:14px}td,th{border-bottom:1px solid #28455e;padding:10px;text-align:left}th{color:#88b1d1}.tag{color:#79e2bb}.notice{border-left:4px solid #f5a34e;padding-left:12px}.scroll{overflow-x:auto}label{display:flex;gap:8px;align-items:center}</style>
+</head><body>
+<h1>RutaGPS <small>Beta 1.0</small></h1><p>Consola demostrativa independiente · 30 dispositivos simulados · intervalos de cinco minutos</p>
+<div class="panel notice"><strong>SIMULACIÓN — No rastrea personas.</strong><p>Las ubicaciones son ficticias. El futuro sistema solo registrará ubicaciones durante la jornada, con aviso y permisos. No captura fotografías ni GPS del navegador.</p></div>
+<div class="grid">
+<div class="panel"><small>Dispositivos configurados</small><div class="stat" id="count">30</div></div>
+<div class="panel"><small>Intervalo propuesto</small><div class="stat">5 min</div></div>
+<div class="panel"><small>Ubicaciones simuladas</small><div class="stat" id="events">0</div></div>
+<div class="panel"><small>Jornadas abiertas</small><div class="stat" id="active">0</div></div>
+</div>
+<div class="panel"><h2>Control del escenario</h2><p>Los botones generan muestras instantáneas para comprobar la vista; no es un temporizador de GPS real.</p>
+<button id="start">Iniciar 30 jornadas ficticias</button> <button id="tick" disabled>Simular siguiente intervalo (+5 min)</button> <button id="stop" disabled>Cerrar jornadas</button> <button id="reset">Reiniciar</button></div>
+<div class="panel"><h2>Supervisor / Central — Última posición</h2><p id="clock">Sin datos registrados</p><div class="scroll"><table><thead><tr><th>ID</th><th>Usuario demo</th><th>Estado</th><th>Latitud</th><th>Longitud</th><th>Última actualización simulada</th></tr></thead><tbody id="rows"></tbody></table></div></div>
+<script>
+const devices=Array.from({length:30},(_,i)=>({id:'GPS-'+String(i+1).padStart(3,'0'),name:'Colaborador DEMO '+(i+1),active:false,lat:null,lng:null,updated:null}));let ticks=0,events=0;
+const $=id=>document.getElementById(id);
+function render(){ $('active').textContent=devices.filter(d=>d.active).length;$('events').textContent=events;
+$('rows').innerHTML=devices.map(d=>'<tr><td>'+d.id+'</td><td>'+d.name+'</td><td class="tag">'+(d.active?'Jornada simulada':'Inactiva')+'</td><td>'+(d.lat?.toFixed(5)??'—')+'</td><td>'+(d.lng?.toFixed(5)??'—')+'</td><td>'+(d.updated??'—')+'</td></tr>').join('');
+$('clock').textContent=ticks?'Tiempo simulado: minuto '+(ticks*5)+' · último registro cada 5 min':'Sin datos registrados';}
+$('start').onclick=()=>{devices.forEach(d=>d.active=true);$('tick').disabled=false;$('stop').disabled=false;render()};
+$('tick').onclick=()=>{ticks++;devices.filter(d=>d.active).forEach((d,i)=>{d.lat=25.42+(i%10)*.013+ticks*.0003;d.lng=-100.99+Math.floor(i/10)*.025+ticks*.0002;d.updated='Minuto '+(ticks*5);events++});render()};
+$('stop').onclick=()=>{devices.forEach(d=>d.active=false);$('tick').disabled=true;$('stop').disabled=true;render()};
+$('reset').onclick=()=>{ticks=events=0;devices.forEach(d=>Object.assign(d,{active:false,lat:null,lng:null,updated:null}));$('tick').disabled=true;$('stop').disabled=true;render()};render();
+</script></body></html>
