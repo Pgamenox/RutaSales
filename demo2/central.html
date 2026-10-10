@@ -25,8 +25,10 @@
 
 <div class="card"><b>Asignar rutas a supervisor</b><div id="routes">Cargando…</div></div>
 </main><script type="module">
+import {candidateOperations} from './backend-operations.js';
+const backend=candidateOperations(supabase);
 import {updateOne,fetchAll} from "./operations.js";
-import {supabase,$,esc,requireRole,logout,URL,KEY} from "./common.js";
+import {supabase,$,esc,requireRole,logout,URL,KEY,candidateBackend} from "./common.js";
 let session,account,accounts=[],routes=[],sellerCount=0;
 async function load(){
  const x=await requireRole("CENTRAL"); if(!x)return; session=x.session;account=x.account;$("welcome").textContent="Central · "+account.full_name;
@@ -63,11 +65,12 @@ $("createUser").onclick=async()=>{
  const j=await r.json(); if(!r.ok){$("createMsg").textContent=j.error||"Error";return}
  $("createMsg").textContent="Usuario creado."; $("newName").value="";$("newEmail").value="";$("newPass").value="";await load();
 };
-window.assignRoute=async id=>{const val=$("route_"+id).value||null;try{await updateOne(supabase.from("rs_routes").update({supervisor_user_id:val}).eq("id",id));await load()}catch(e){alert(e.message)}};
+window.assignRoute=async id=>{const val=$("route_"+id).value||null;try{if(candidateBackend){await backend.assignRoute(id,val)}else{await updateOne(supabase.from("rs_routes").update({supervisor_user_id:val}).eq("id",id))}await load()}catch(e){alert(e.message)}};
 window.deactivateSeller=async(userId,sellerId)=>{
  const name=accounts.find(a=>a.user_id===userId)?.full_name||"este vendedor";
  if(!confirm("¿Desactivar a "+name+"? El historial se conservará."))return;
  const replacement=$("replace_"+sellerId)?.value||null;
+ if(candidateBackend){try{const n=await backend.deactivate(sellerId,replacement);alert("Vendedor desactivado. Historial conservado. Pendientes reasignados: "+n);await load()}catch(e){alert(e.message)}return;}
  let pending;
  try{pending=await fetchAll(()=>supabase.from("rs_visits").select("id,original_seller_id,status").eq("seller_id",sellerId).in("status",["PENDIENTE","REPROGRAMADA"]).order("id"))}catch(e){return alert("No se pudieron consultar pendientes: "+e.message)}
  if((pending||[]).length&&replacement){

@@ -3,6 +3,8 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 export const URL="https://ezfqvhoprfstcmdiflcm.supabase.co";
 export const KEY="sb_publishable_wLgcGxNPSly8oN321Wqllg_aBbhPbKM";
 export const supabase=createClient(URL,KEY);
+// QA server substitutes this constant only on loopback; published runtime remains legacy.
+export const candidateBackend=false;
 export const $=id=>document.getElementById(id);
 export const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 export async function sessionAccount(){

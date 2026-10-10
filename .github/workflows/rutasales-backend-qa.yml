@@ -65,5 +65,7 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Install pinned Supabase CLI binary
         run: npm rebuild supabase
+      - name: Install Chromium for isolated UI QA
+        run: npx --no-install playwright install --with-deps chromium
       - name: Auth real + REST/RPC - stack LOCAL efímero
         run: node tests/run-local-stack.mjs

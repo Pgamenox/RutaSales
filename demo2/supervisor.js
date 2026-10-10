@@ -1,6 +1,7 @@
+import {candidateOperations} from './backend-operations.js';
 import {renderDailyReport} from "./daily-report.js";
 import {distanceValue,zoneKey,photoSource,localDate,updateOne,fetchAll} from "./operations.js";
-import {supabase,$,esc,requireRole,logout} from "./common.js";
+import {supabase,$,esc,requireRole,logout,candidateBackend} from "./common.js";
 
 let account=null,sellers=[],routes=[],customers=[],visits=[],incidents=[],reassignments=[],filter="all",page=0,totalVisits=0;
 const PAGE_SIZE=25;
@@ -103,7 +104,9 @@ $("saveVisit").onclick=async()=>{
  if(!error)await load();
 };
 
+const backend=candidateOperations(supabase);
 window.approveProposal=async id=>{
+ if(candidateBackend){try{await backend.resolve(id,"APROBADO");alert("Negocio aprobado y agregado al catálogo.");await load()}catch(e){alert(e.message)}return;}
  const i=incidents.find(x=>x.id===id);if(!i)return;
  const {data:c,error:e1}=await supabase.from("rs_customers").insert({
    name:i.proposal_name,address:i.proposal_address||"Sin referencia",lat:i.lat,lng:i.lng,allowed_radius_m:100,active:true
@@ -115,15 +118,18 @@ window.approveProposal=async id=>{
 };
 window.rejectProposal=async id=>{
  if(!confirm("¿Rechazar esta propuesta?"))return;
+ if(candidateBackend){try{await backend.resolve(id,"RECHAZADO");await load()}catch(e){alert(e.message)}return;}
  const {error}=await supabase.from("rs_incidents").update({resolved:true,resolved_at:new Date().toISOString(),resolution_note:"RECHAZADO"}).eq("id",id);
  if(error)return alert(error.message);await load();
 };
 window.resolveIncident=async id=>{
+ if(candidateBackend){try{await backend.resolve(id,"ATENDIDO");await load()}catch(e){alert(e.message)}return;}
  const {error}=await supabase.from("rs_incidents").update({resolved:true,resolved_at:new Date().toISOString(),resolution_note:"Atendido sin reasignación"}).eq("id",id);
  if(error)return alert(error.message);await load();
 };
 window.reassignIncident=async(id,routeId,fromSellerId)=>{
  const to=$("to_"+id)?.value;if(!to)return alert("Selecciona otro vendedor.");
+ if(candidateBackend){try{const n=await backend.reassign(id,to,"Pendientes reasignados");alert("Se reasignaron "+n+" visita(s).");await load()}catch(e){alert(e.message)}return;}
  let pending;
  try{pending=await fetchAll(()=>supabase.from("rs_visits").select("id,original_seller_id").eq("seller_id",fromSellerId).eq("route_id",routeId).eq("status","PENDIENTE").order("id"))}catch(e){return alert("No se pudieron consultar todos los pendientes: "+e.message)}
  if(!pending.length)return alert("No hay visitas pendientes.");
