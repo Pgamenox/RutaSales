@@ -12,13 +12,13 @@ Alcance: demo ficticia alojada en GitHub Pages, SIN rastreo real.
 ## Revisión estática del código de Central
 - El botón Finalizar jornadas ejecuta `devices.forEach(d=>d.working=false)`.
 - Deshabilita el botón de avanzar 5 minutos y vuelve a renderizar.
-- Evidencia de ejecución visual tras pulsar Finalizar jornadas: NO APORTADA.
+- Evidencia visual del cierre aportada el 2026-10-10: APROBADO. En jornada 0, ubicaciones recientes 0, GPS-001 fuera de jornada, último reporte minuto 25, botón +5 deshabilitado.
 - Cambio de paquete de 5 a 15/30 y reglas de límite concurrente: NO PROBADO.
 - Persistencia multi-dispositivo real: NO EXISTE; solo localStorage para la demo.
 
 ## Resultado del ciclo
 **QA DEMOSTRATIVA PARCIAL APROBADA. NO APROBADA COMO BETA GPS REAL O COMERCIAL.**
-No se puede certificar la prueba de cierre sin su ejecución real, ni la seguridad de licencias a partir de UI estática.
+La prueba visual del cierre de jornada simulada está aprobada. No se puede certificar la seguridad de licencias ni el seguimiento GPS real a partir de esta demo.
 
 ## Siguiente lote (Beta 1.3)
 1. Capturar evidencia del cierre: contador 0; fuera de jornada; botón +5 deshabilitado.
