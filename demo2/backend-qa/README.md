@@ -58,7 +58,7 @@ El frontend continúa usando su backend actual y operaciones antiguas. No activa
 
 Faltan RPC de incidencia/propuesta, reprogramación, asignación de rutas y aprobación de clientes; permisos de cambios de clientes; onboarding de empresas y UI Superadmin; trazabilidad de licencias con políticas de retención; carga/índices de todas las FK y plan de recuperación. No se habilita todavía escritura amplia para sustituir esas operaciones ausentes.
 
-Antes de fusionar: ejecutar Auth/JWT reales de los cuatro roles, dos empresas, REST/RPC, cuentas inactivas, límites/vigencias y ambas carreras; asesores Supabase reales; prueba física de GPS/cámara y ciclo completo con el adaptador frontend. Configurar recuperación/MFA/rate limits, analizar logs sin evidencia sensible y medir contención del bloqueo por empresa.
+Auth/JWT de los cuatro roles, dos empresas, REST/RPC, cuentas inactivas y vigencias ya se comprobaron en CI (RESULTS.md); límites y ambas carreras también aprobaron. Antes de fusionar siguen pendientes: asesores del entorno de destino, prueba física de GPS/cámara y ciclo completo con el adaptador frontend. Configurar recuperación/MFA/rate limits, analizar logs sin evidencia sensible y medir contención del bloqueo por empresa.
 
 Compatibilidad futura con RutaGPS/RutaGuard: tenant e identificadores externos en contratos versionados; no otorgar acceso directo a bases ajenas. Sin rastreo periódico, cobros ni fotos automáticas.
 

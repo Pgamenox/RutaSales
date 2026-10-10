@@ -84,3 +84,7 @@ Modificados: `demo2/central.html`, `common.js`, `index.html`, `supervisor.js`, `
 ## Continuación: candidato backend QA
 
 Se añadió [backend-qa/README.md](backend-qa/README.md) con migraciones exclusivas para base vacía, RLS por empresa, licencias, cuota y RPC transaccionales. Se aprobaron 23 pruebas SQL embebidas, 23 en PostgreSQL 17.11 nativo y 2 de concurrencia en GitHub Actions ([evidencia](https://github.com/Pgamenox/RutaSales/actions/runs/38090566121)). El bloqueo nativo local se resolvió mediante contenedor temporal de CI. No se aplicó a Supabase existente ni se conectó al frontend. El dictamen NO APTO permanece; [resultados y límites](backend-qa/RESULTS.md).
+
+### Comprobación Auth/API del candidato (2026-10-10)
+
+El candidato aislado aprobó 10 pruebas adicionales con GoTrue, JWT firmados y PostgREST reales en [CI 38095163411](https://github.com/Pgamenox/RutaSales/actions/runs/38095163411): aislamiento de dos empresas, permisos, metadatos adulterados, vencimiento/renovación y bloqueo de datos de cuenta desactivada. También se repitieron y aprobaron las 7 pruebas unitarias, 2 ciclos sintéticos de navegador y 12 pruebas RutaGPS. Los pendientes de seguridad real indicados arriba describen el backend publicado: no se migró ni conectó el candidato al frontend. Revocación Auth, Edge de alta/reset, Storage, integración E2E real y QA de campo siguen pendientes. Ver [RESULTS.md](backend-qa/RESULTS.md) para alcance y límites. ClickOnMe y MockuPro no se usaron ni modificaron; no se fusionó ni publicó.
