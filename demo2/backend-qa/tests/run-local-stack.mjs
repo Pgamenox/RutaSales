@@ -12,8 +12,9 @@ try{
  console.log('Starting disposable LOCAL Supabase: Auth + REST + PostgreSQL');
  command(['start','--exclude','realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor']);
  command(['db','reset','--local','--no-seed','--yes']);
- const advisory=command(['db','advisors','--local','--type','security','--level','warn','--fail-on','error','--output','json']);
- console.log('Local security advisors (warnings/errors only):',advisory.slice(0,8000));
+ const advisory=spawnSync(cli,['db','advisors','--local','--type','security','--level','warn','--fail-on','error','--output','json','--workdir','.'],{encoding:'utf8',timeout:60000,maxBuffer:8*1024*1024});
+ if(advisory.status!==0)throw Object.assign(Error('Local security advisor failed'),{stderr:advisory.stderr});
+ console.log('Local security advisors exit 0:',(advisory.stdout+advisory.stderr).trim().slice(0,8000)||'No WARN/ERROR output');
  console.log('Local migrations applied; testing real Auth and REST/RPC');
  result=spawnSync(process.execPath,['--test','tests/auth-api.test.mjs'],{stdio:'inherit',env:{...process.env,SUPABASE_CLI:cli},timeout:180000}).status??1;
 }catch(e){const clean=String(e.stderr||e.message).replace(/eyJ[A-Za-z0-9._-]+/g,'[JWT omitted]').replace(/sb_(secret|publishable)_[A-Za-z0-9_-]+/g,'[key omitted]').replace(/postgres(?:ql)?:\/\/[^\s]+/g,'[local DB URL omitted]');console.error(clean.slice(-2500));}
