@@ -49,3 +49,21 @@ jobs:
         env:
           NATIVE_PG_URL: postgresql://qa_owner:synthetic_ci_only@127.0.0.1:5432/rutasales_qa
         run: npm run test:concurrency
+  real-auth-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: demo2/backend-qa
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: demo2/backend-qa/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install pinned Supabase CLI binary
+        run: npm rebuild supabase
+      - name: Auth real + REST/RPC - stack LOCAL efímero
+        run: node tests/run-local-stack.mjs
