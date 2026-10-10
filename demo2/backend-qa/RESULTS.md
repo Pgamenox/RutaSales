@@ -2,11 +2,11 @@
 
 | Estado | Evidencia |
 |---|---|
-| Implementado | Tres migraciones candidatas, 9 tablas públicas con RLS, FK tenant, licencias y cuatro RPC; sin enlace remoto |
-| Probado | 23 pruebas SQL embebidas, 23 en PostgreSQL 17.11 nativo, 2 de concurrencia y 10 de GoTrue/JWT + PostgREST reales; dos empresas, roles, cuota, licencias, rollback y baja |
-| Pendiente | Adaptador frontend, Edge de alta/reset, revocación de sesiones, Storage, RPC restantes, auditoría externa, carga general y campo |
-| Bloqueado | Bloqueos locales de PostgreSQL y Auth/API resueltos con contenedores efímeros en GitHub Actions; integración comercial todavía pendiente |
-| Listo para demo | Sólo laboratorio SQL reproducible; la interfaz publicada conserva backend anterior |
+| Implementado | Cuatro migraciones candidatas, 9 tablas públicas con RLS, FK tenant, licencias y ocho RPC; sin enlace remoto |
+| Probado | 32 pruebas SQL embebidas, 32 en PostgreSQL 17.11 nativo, 4 de concurrencia y 15 Auth/API/interfaz con GoTrue y PostgREST reales; dos empresas, roles, cuota, licencias, rollback, propuestas, reprogramación y baja |
+| Pendiente | Edge de alta/reset, revocación de sesiones, Storage privado, alta/edición de rutas/clientes, onboarding/UI Superadmin, idempotencia de reintentos, auditoría externa, carga general y campo |
+| Bloqueado | Despliegue comercial requiere entorno independiente definido y autorizado; QA físico GPS/cámara requiere dispositivos. Contenedores efímeros resuelven los bloqueos de laboratorio |
+| Listo para demo | Laboratorio integrado de interfaz/API reproducible; la interfaz publicada conserva backend anterior |
 | Listo para comercialización | NO |
 
 Pruebas SQL: 23 aprobadas en cada motor, 0 fallidas. Concurrencia nativa: 2 aprobadas, 0 omitidas. Evidencia: [GitHub Actions run 38090566121](https://github.com/Pgamenox/RutaSales/actions/runs/38090566121), commit af15eb4afe603912c3b7334820ed720f677a4338. El motor ejecuta políticas RLS reales usando un contexto auth de prueba; no valida tokens ni infraestructura Supabase.
@@ -34,3 +34,32 @@ El launcher exige runner GitHub hospedado y proyecto local sin enlace remoto, re
 Regresión local sobre el mismo commit: 7 pruebas unitarias RutaSales, 2 ciclos de navegador móvil/escritorio con datos, GPS y cámara sintéticos, PDF real, y 12 pruebas Node RutaGPS: aprobadas. El navegador todavía usa un backend simulado; no demuestra integración de la interfaz con este candidato.
 
 Estado: backend candidato verificado en este alcance; **NO listo para comercialización**. Falta conectar y probar el frontend contra las RPC, completar las operaciones faltantes y Edge de alta/reset, evidencias en Storage privado, revocación/recuperación Auth, carga, recuperación y QA de campo. Rama independiente y PR #2 borrador; sin merge ni despliegue.
+
+## Cierre de operaciones e interfaz QA — evidencia vigente
+
+[Run 38096174864](https://github.com/Pgamenox/RutaSales/actions/runs/38096174864), commit `8f913176f60aa2da8d8745ab4b8291678f8a8f5c`. Ambos jobs: SUCCESS. **32 + 32 pruebas SQL, 4 de concurrencia y 15 Auth/API/interfaz; cero fallidas u omitidas en CI.** Las cifras de las secciones anteriores corresponden a ejecuciones históricas y no sustituyen este resultado.
+
+Se añadieron cuatro RPC: rs_submit_incident (vendedor y empresa derivados del servidor), rs_resolve_incident (aprobar/rechazar/atender), rs_reprogram_visit (evidencia original y nuevo intento pendiente) y rs_assign_route (Central y supervisor de la misma empresa). Todas usan autorización explícita, operaciones privadas y wrappers públicos invoker sin acceso anon. Cambiar el supervisor de una ruta con historia/asignaciones está rechazado para conservar pertenencia y evidencia; no se implementó traslado de historia entre supervisores.
+
+Las pruebas forzaron fallos al cerrar una propuesta y al crear el nuevo intento: cliente/cierre o estado/evidencia se revirtieron íntegramente. Dos conexiones que reprogramaron el mismo pendiente produjeron un solo hijo. Dos conexiones que aprobaron la misma propuesta produjeron un cliente y una auditoría. Ambas tuvieron barrera de bloqueo observable, además de las carreras de cuota y completar/reasignar existentes.
+
+La prueba número 15 usa la interfaz existente, SDK Supabase local y JWT/REST/RPC reales. Un Supervisor asigna una visita; Vendedor captura GPS/cámara ficticios y completa; reporta incidencia; Supervisor reasigna más de 25 pendientes en una transacción y descarga un PDF real; Central da de baja al vendedor con reemplazo y se comprueba estado/preservación en SQL. Viewports 390×844 y 1280×900 sin desbordamiento horizontal; sin errores de scripts ni solicitudes a servicios externos. Usuarios creados por bootstrap de QA, **no por Edge de alta**. Las propuestas y reprogramación se probaron por API y SQL, no mediante sus pantallas en este recorrido.
+
+El adaptador demo2/backend-operations.js y las ramas de operación se habilitan únicamente al servir common.js en memoria desde el servidor QA loopback. candidateBackend=false permanece en el producto; URL/key publicadas no se sustituyeron. El frontend publicado y las bases existentes siguen intactos. No se rediseñó ninguna pantalla ni se modificó CSS.
+
+El asesor CLI de seguridad local ejecutó --type security --level warn --fail-on error: exit 0 y “No issues found”. Esto cubre ese asesor SQL local y ese filtro; no acredita todos los niveles INFO, configuración productiva de Auth/Storage, revisión externa ni seguridad física. CLI 2.120.0, Node 24.21.0, Playwright 1.62.1 y SDK 2.117.3 fijados; stack eliminado al terminar.
+
+Dos intentos del navegador fallaron por selectores de QA ambiguos: nombre de cliente repetido entre intentos y nombre de vendedor presente en opciones de reemplazo. Se corrigieron usando IDs exactos; no se alteró la interfaz por estos fallos. Las 7 unitarias, 2 ciclos con backend simulado y 12 Node RutaGPS también se repitieron y aprobaron. Captura móvil de la regresión sintética revisada visualmente.
+
+| Entrega | Estado actual |
+|---|---|
+| Implementado | Ocho RPC candidatas y adaptador QA para completar, enviar incidencia/propuesta, resolver, reasignar, baja y asignación de ruta; reprogramación mantiene firma existente |
+| Probado | SQL en dos motores, cuatro carreras, JWT/REST reales y recorrido de interfaz acotado indicado arriba |
+| Pendiente | Edge alta/reset por empresa, Storage privado e imagen íntegra, sesión/reintentos, onboarding/Superadmin, operaciones restantes, carga y recuperación |
+| Bloqueado | Publicación sin entorno independiente y autorización; prueba física sin dispositivo/operador |
+| Listo para demo | Laboratorio QA integrado; sin nueva publicación |
+| Listo para comercialización | NO |
+
+Siguiente trabajo detallado: [NEXT-BACKEND.md](NEXT-BACKEND.md). El próximo bloque implementable es alta/reset con reserva de cupo, idempotencia, compensación y permisos por empresa; después, evidencia privada. Ningún código de esos dos bloques se declara implementado aquí.
+
+Archivos añadidos/modificados en esta continuación: migration 20261010233413_operational_rpcs.sql; tests database, concurrency, auth-api, frontend-api y run-local-stack; package.json/lock; workflow; demo2/backend-operations.js, common.js, central.html, supervisor.js y vendedor.js; README, RESULTS, NEXT-BACKEND y estado/auditoría. Todos pertenecen a RutaSales y su QA. ClickOnMe/MockuPro no se usaron ni modificaron; RutaGPS/RutaGuard sin cambios; main intacto y PR #2 borrador.

@@ -1,4 +1,4 @@
-> Estado actualizado: [auditoría y QA parcial Beta 2.0](COMMERCIAL-AUDIT-2.0.md). No apto aún para comercialización; el texto histórico siguiente no sustituye este informe.
+> Estado actualizado: [auditoría y QA del candidato Beta 2.0](COMMERCIAL-AUDIT-2.0.md), con [evidencia SQL/Auth/API/interfaz](backend-qa/RESULTS.md). No apto aún para comercialización; el texto histórico siguiente no sustituye este informe.
 
 # RutaSales — BETA 2.0 / Roles y Acceso Seguro
 
