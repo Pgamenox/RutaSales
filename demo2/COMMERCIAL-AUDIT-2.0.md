@@ -80,3 +80,7 @@ Estas guardas de cliente no reemplazan controles del servidor. Los rangos de zon
 ## Archivos
 
 Modificados: `demo2/central.html`, `common.js`, `index.html`, `supervisor.js`, `vendedor.js` y referencia de estado en `BETA-STATUS.md`. Nuevos: `operations.js`, `daily-report.js`, este informe y `qa/` (pruebas y guía). No hay cambios fuera de demo2.
+
+## Continuación: candidato backend QA
+
+Se añadió [backend-qa/README.md](backend-qa/README.md) con migraciones exclusivas para base vacía, RLS por empresa, licencias, cuota y RPC transaccionales. Se aprobaron 23 pruebas SQL en Postgres embebido; las 2 pruebas de concurrencia nativa están preparadas pero bloqueadas por el entorno. No se aplicó a Supabase existente ni se conectó al frontend. El dictamen NO APTO permanece; [resultados y límites](backend-qa/RESULTS.md).

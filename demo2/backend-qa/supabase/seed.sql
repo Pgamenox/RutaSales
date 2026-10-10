@@ -1,0 +1,2 @@
+-- Intentionally empty. Synthetic Auth/fixtures belong to the local SQL tests.
+-- Do not copy existing customer/user data into QA.
