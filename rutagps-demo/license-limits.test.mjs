@@ -1,0 +1,5 @@
+import assert from 'node:assert/strict';
+import {DEVICES,assignWorker,upgradeCompany,valid} from './shared-demo.js';
+const license=(id,n)=>({id,capacity:n,status:'ACTIVE',expiresAt:'2099-12-31T00:00:00Z',workers:[]});
+for(const cap of [5,12,15,30]){const c=license('firm-'+cap,cap);for(let i=0;i<cap;i++)assignWorker(c,DEVICES[i],[c]);assert.equal(c.workers.length,cap);if(cap<30)assert.throws(()=>assignWorker(c,DEVICES[cap],[c]),/Cupo agotado/);}
+const a=license('a',5),b=license('b',5);assignWorker(a,'GPS-001',[a,b]);assert.throws(()=>assignWorker(b,'GPS-001',[a,b]),/otra empresa/);assert.throws(()=>assignWorker(a,'GPS-999',[a,b]),/inexistente/);assert.throws(()=>assignWorker(a,'GPS-001',[a,b]),/Ya asignado/);b.status='SUSPENDED';assert.equal(valid(b),false);assert.throws(()=>assignWorker(b,'GPS-002',[a,b]),/inactiva/);upgradeCompany(a,12);upgradeCompany(a,15);upgradeCompany(a,30);assert.equal(a.capacity,30);console.log('OK: licencias 5,12,15,30; excedentes; doble empresa; catálogo; suspensión; ampliación');
