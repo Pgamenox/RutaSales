@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-10",
+  "environment": "Node 24.19.0; Chromium 153; Playwright; jsPDF 2.5.1",
+  "backend": "synthetic only; production catalog read-only",
+  "node_rutasales": {
+    "passed": 7,
+    "failed": 0
+  },
+  "node_rutagps_regression": {
+    "passed": 12,
+    "failed": 0
+  },
+  "browser_cycles": {
+    "passed": 2,
+    "failed": 0,
+    "viewport_mobile": [
+      390,
+      844
+    ],
+    "viewport_supervisor_desktop": [
+      1280,
+      900
+    ],
+    "visits_assigned": 27,
+    "pending_reassigned": 26,
+    "pdf_rows": 26,
+    "product_page_errors": 0
+  },
+  "artifacts": {
+    "central-mobile-1.png": "f7e68c85dfff1678d49d4d80179faf57d1143bf3c030e4e32c7c9697c84aeea5",
+    "central-mobile-2.png": "f7e68c85dfff1678d49d4d80179faf57d1143bf3c030e4e32c7c9697c84aeea5",
+    "cycle-1.pdf": "b626c55190b511537755b28a452d7ca46028039136dd1b767284545db50b1314",
+    "cycle-2.pdf": "d79bb6d949e701c29ed6f116a5b988a98e589d12f73207c3f3519b8d7aeaa6ce",
+    "pdf-page.png": "1286f33d09394aa5ce4e1b0fb80926c6d8d63f6234b4f89298acd5a87a5c74d7",
+    "seller-mobile-1.png": "2e13f4189c9cc685a950a990da4beffa8818362ce5538c1fa2dfb7b01fd631b4",
+    "seller-mobile-2.png": "2e13f4189c9cc685a950a990da4beffa8818362ce5538c1fa2dfb7b01fd631b4",
+    "supervisor-desktop-1.png": "05850b4d0591e0b70a4535ae99e8b20430621b7ef752c4944d12de11b76d61a4",
+    "supervisor-desktop-2.png": "a3eb2e48bce72cbc78252f115f13a08fd0ca37570c12a192c9ecc4da09397f5a",
+    "supervisor-mobile-1.png": "0ab1742f531962d56f7ddcc5a36abf9e8e0fe2998fd6b880b3badb940a3a9590",
+    "supervisor-mobile-2.png": "040bc22ebd85df9dc1cc608e0e25598207aaa8b8af37c19f2c66ecad3b188653"
+  },
+  "limits": [
+    "Not proof of actual Supabase RLS",
+    "No real GPS or camera",
+    "No multi-company or server concurrency test"
+  ]
+}

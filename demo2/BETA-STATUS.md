@@ -1,3 +1,5 @@
+> Estado actualizado: [auditoría y QA parcial Beta 2.0](COMMERCIAL-AUDIT-2.0.md). No apto aún para comercialización; el texto histórico siguiente no sustituye este informe.
+
 # RutaSales — BETA 2.0 / Roles y Acceso Seguro
 
 Estado canónico: 2026-10-06  

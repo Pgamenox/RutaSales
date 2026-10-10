@@ -1,3 +1,4 @@
+import {zoneKey,updateOne} from "./operations.js";
 import {supabase,$,esc,requireRole,logout,geo} from "./common.js";
 
 let account=null;
@@ -43,7 +44,7 @@ async function load(){
   $("visitsList").innerHTML=visits.length?visits.map(v=>{
     const route=esc(routeName(v.route_id));
     if(v.status!=="PENDIENTE"){
-      const zone=Number.isFinite(Number(v.distance_m))
+      const zone=zoneKey(v.distance_m)!=="none"
         ? (Number(v.distance_m)<=100?"✅ VÁLIDA":Number(v.distance_m)<=250?"⚠️ REVISAR":"❌ FUERA DE ZONA")
         : "";
       return '<div class="visit"><b>'+esc(v.customer_name)+'</b> <span class="badge">'+esc(v.status)+'</span><div class="small">'+route+' · '+esc(v.address)+' · '+esc(v.visit_date)+'</div><div class="ok">Evidencia enviada '+zone+'</div></div>';
@@ -144,6 +145,10 @@ async function snapshot(){
 }
 
 $("snapBtn").onclick=async()=>{
+ if($("snapBtn").disabled)return;$("snapBtn").disabled=true;
+ try{await sendSnapshot()}finally{$("snapBtn").disabled=false}
+};
+async function sendSnapshot(){
   let photo;
   try{photo=await snapshot()}catch(e){return alert(e.message)}
 
@@ -151,11 +156,10 @@ $("snapBtn").onclick=async()=>{
     const id=currentVisitId,g=pendingGps[id];
     if(!id||!g)return;
     if(Date.now()-g.capturedAt>120000){closeCamera();delete pendingGps[id];await load();return alert("El GPS venció. Repite el paso 1.");}
-    const {error}=await supabase.from("rs_visits").update({
+    try{await updateOne(supabase.from("rs_visits").update({
       status:"COMPLETADA",lat:g.lat,lng:g.lng,accuracy:g.accuracy,
       photo_data:photo,evidence_source:"LIVE_CAMERA",device_captured_at:new Date().toISOString()
-    }).eq("id",id);
-    if(error)return alert("No se pudo enviar: "+error.message);
+    }).eq("id",id).eq("seller_id",account.seller_id).eq("status","PENDIENTE"))}catch(e){return alert("No se pudo enviar: "+e.message)}
     delete pendingGps[id];closeCamera();alert("Visita enviada con GPS + cámara en vivo.");await load();
   }
 
@@ -202,7 +206,7 @@ $("snapBtn").onclick=async()=>{
     closeCamera();$("proposalName").value="";$("proposalAddress").value="";proposalGps=null;
     alert("Negocio enviado al supervisor para aprobación.");await load();
   }
-};
+}
 
 $("reprogramContinue").onclick=async()=>{
   const id=reprogramVisitId,g=pendingGps[id];
