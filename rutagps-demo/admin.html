@@ -18,6 +18,7 @@ $('records').innerHTML=cs.length?cs.map(c=>'<tr><td>'+safe(c.name)+'</td><td>'+c
 const c=cs.find(c=>c.id===demo.selectedCompanyId);
 document.getElementById('assignedTitle').textContent=c?'Empresa: '+c.name+' — '+c.workers.length+'/'+c.capacity+' cupos':'Selecciona una empresa';
 document.getElementById('workerPicker').innerHTML=devices.filter(id=>!c?.workers.includes(id)).map(id=>'<option>'+id+'</option>').join('');
+document.getElementById('assignBtn').disabled=!valid(c)||c.workers.length>=c.capacity||!document.getElementById('workerPicker').options.length;
 document.getElementById('assignedList').innerHTML=c?c.workers.map(id=>'<span style="display:inline-block;margin:5px;padding:8px;background:#24435a;border-radius:7px">'+id+' <button class="secondary" data-unassign="'+id+'">Liberar</button></span>').join('')||'Sin GPS asignados':'—';
 }
 $('add').onclick=()=>{try{addCompany(demo,$('company').value,$('capacity').value,$('months').value);$('company').value='';$('message').textContent='Empresa de demostración creada';persist()}catch(e){$('message').textContent=e.message}};

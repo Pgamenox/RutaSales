@@ -3,9 +3,11 @@
 Fecha: 2026-10-10. Base auditada: `9c2de7887b886272990cf449fb402b821d5adce3` de Pgamenox/RutaSales, rama main.
 Rama de correcciones: `work/rutagps-beta-1.4-audit`. Alcance exclusivo: `/rutagps-demo/`. Sin fusión, publicación en Pages ni cambios en módulos RutaSales/RutaGuard.
 
+Actualización de cierre QA: ver `QA_CIERRE_BETA_1_4.md`. Se resolvió el bloqueo Chromium y se aprobaron las pruebas de navegador/escritorio/móvil. El registro inicial de bloqueo se conserva más abajo como historial de esta auditoría; ya no es un bloqueo vigente.
+
 ## Dictamen
 
-Demo local con correcciones y pruebas de lógica aprobadas. NO lista para comercialización. No existe backend RutaGPS, autenticación efectiva, aislamiento seguro en servidor ni GPS real probado. Los cupos independientes por empresa son una función de simulación; no garantizan seguridad. Todos los visitantes de la demo pueden gestionar las empresas ficticias guardadas en su navegador.
+Demo local con correcciones, pruebas de lógica y QA de navegador aprobados. NO lista para comercialización. No existe backend RutaGPS, autenticación efectiva, aislamiento seguro en servidor ni GPS real probado. Los cupos independientes por empresa son una función de simulación; no garantizan seguridad. Todos los visitantes de la demo pueden gestionar las empresas ficticias guardadas en su navegador.
 
 ## Entrega por estado
 
@@ -14,8 +16,8 @@ Demo local con correcciones y pruebas de lógica aprobadas. NO lista para comerc
 | Implementado | Superadministrador demo, empresas, cupos 5/12/15/30, asignar/liberar, ampliar, renovar/suspender; Central esquemática y jornadas simuladas; historial ficticio/CSV. Correcciones en esta rama: historial limitado a empresa seleccionada/licencia vigente, selección persistida, validación de almacenamiento, renovación con fin de mes, botones de jornada acordes al estado, sincronización de cambios entre pestañas y reinicio de coordenadas. |
 | Probado | 12 pruebas Node pasan: capacidades, exceso, duplicados, liberación, independencia local, selección/persistencia, suspensión/vencimiento, ampliaciones, renovaciones, fin de mes/bisiesto, datos corruptos, contratos de rol/empresa/dispositivo y jornada/intervalo. Sintaxis de scripts y diff sin errores. |
 | Pendiente | Backend independiente, esquema/migraciones, proveedor de identidad, middleware, autorización en base/API, transacciones y concurrencia, adaptadores RutaSales/RutaGuard, carga, observabilidad, piloto real Android/iOS, batería y segundo plano. |
-| Bloqueado | Prueba automatizada en navegador no ejecutada: Playwright está disponible pero no hay Chromium; su descarga falló con archivo inválido/truncado. Pruebas end-to-end comerciales requieren backend QA independiente y dispositivos reales; no se conectó a bases productivas. |
-| Listo para demo | Base está publicada como demostración según el contexto del proyecto; correcciones 1.4 aptas para revisión de lógica en rama. Validación visual/móvil y navegación completa de 1.4 pendientes antes de aprobar publicación. Sólo usar datos ficticios. |
+| Bloqueado | Ningún bloqueo vigente para publicar la demo tras autorización. Pruebas end-to-end comerciales requieren backend QA independiente y dispositivos reales; no se conectó a bases productivas. |
+| Listo para demo | Sí: lógica, navegador y revisión visual en 1440×1000 y 390×844 aprobadas. Publicación de 1.4 pendiente de autorización expresa; la demo pública sigue en 1.2. Sólo datos ficticios. |
 | Listo para comercialización | **No**. Sin evidencia de autenticación real, aislamiento por empresa en servidor, concurrencia de licencias, seguridad ni seguimiento en teléfonos reales. |
 
 ## Hallazgos y correcciones
@@ -53,7 +55,7 @@ git diff --check
 
 Resultado observado: 12 pass, 0 fail. El archivo de pruebas anterior conserva sus aserciones y se ejecuta como un caso; los 11 casos nuevos reportan resultados individuales.
 
-Prueba de navegador preparada, NO aprobada todavía:
+Prueba de navegador aprobada en cierre QA (ver informe de cierre):
 
 ```bash
 npm install --no-save playwright
@@ -65,7 +67,7 @@ El script cubre alta/asignación de dos empresas, selección compartida, inicio/
 
 ## Siguiente puerta de aceptación
 
-1. Ejecutar y aprobar prueba de navegador y revisión visual premium de la rama.
+1. QA de navegador y revisión visual aprobados; obtener autorización de fusión/publicación y ejecutar smoke test posterior.
 2. Revisar diseño, desplegar backend sólo en QA independiente y cubrir aislamiento y carreras de cupos.
 3. Implementar adaptadores y probar integración con entornos de prueba de RutaSales/RutaGuard.
 4. Validar piloto informado en Android/iOS y cierre fuera de jornada.
