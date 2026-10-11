@@ -63,8 +63,14 @@ $("createUser").onclick=async()=>{
    if(!payload.supervisor_user_id){$("createMsg").textContent="Primero crea y selecciona un Supervisor.";return}
  }
  if(candidateBackend){const signature=JSON.stringify(payload);if(candidateRequest?.signature!==signature)candidateRequest={signature,id:crypto.randomUUID()};payload.request_id=candidateRequest.id;}
- const r=await fetch(URL+"/functions/v1/rutasales-admin-users",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY,Authorization:"Bearer "+session.access_token},body:JSON.stringify(payload)});
- const j=await r.json(); if(!r.ok){$("createMsg").textContent=j.error||"Error";return}
+ let r,j;
+ try{r=await fetch(URL+"/functions/v1/rutasales-admin-users",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY,Authorization:"Bearer "+session.access_token},body:JSON.stringify(payload)});j=await r.json()}catch{j={error:"No se pudo confirmar el alta. Conserva los datos y revisa el estado."}}
+ if(!r?.ok&&candidateBackend){
+   const {data:state,error}=await supabase.rpc("rs_account_request_status",{p_id:payload.request_id});
+   if(!error&&state?.state==="COMPLETE"&&state.user_id){r={ok:true};j={ok:true}}
+   else if(!error&&state?.needs_reconciliation){j={error:"Alta pendiente de reconciliación. Solicitud: "+payload.request_id}}
+ }
+ if(!r?.ok){$("createMsg").textContent=j?.error||"Error";return}
  candidateRequest=null;$("createMsg").textContent="Usuario creado."; $("newName").value="";$("newEmail").value="";$("newPass").value="";await load();
 };
 window.assignRoute=async id=>{const val=$("route_"+id).value||null;try{if(candidateBackend){await backend.assignRoute(id,val)}else{await updateOne(supabase.from("rs_routes").update({supervisor_user_id:val}).eq("id",id))}await load()}catch(e){alert(e.message)}};
