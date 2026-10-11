@@ -39,6 +39,8 @@ jobs:
           cache: npm
           cache-dependency-path: demo2/backend-qa/package-lock.json
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Fallos controlados de alta y reset
+        run: node --test tests/account-failures.test.mjs
       - name: PostgreSQL embebido
         run: npm test
       - name: PostgreSQL nativo - RLS y transacciones
