@@ -12,7 +12,7 @@ npm test
 npm run test:concurrency
 ```
 
-El primer comando de pruebas ejecuta PostgreSQL embebido (PGlite 0.3.14), las migraciones SQL y datos ficticios en memoria. **38 pruebas SQL locales aprobadas; evidencia nativa vigente en RESULTS.md.** El segundo omite explícitamente seis pruebas cuando falta NATIVE_PG_URL. Eso no constituye aprobación de concurrencia.
+El primer comando de pruebas ejecuta PostgreSQL embebido (PGlite 0.3.14), las migraciones SQL y datos ficticios en memoria. **40 pruebas SQL locales aprobadas; evidencia nativa vigente en RESULTS.md.** El segundo omite explícitamente seis pruebas cuando falta NATIVE_PG_URL. Eso no constituye aprobación de concurrencia.
 
 Auth en esta suite es una función de prueba `auth.uid()` con el UUID de sesión y roles SQL anon/authenticated. Las políticas RLS sí son ejecutadas por el motor PostgreSQL; no hay firmas JWT, servidor Auth, PostgREST, Storage ni Edge Functions reales. No usar este stub en Supabase. El esquema auth del servicio real lo administra Supabase.
 
@@ -28,7 +28,7 @@ node --test tests/database.test.mjs
 node --test tests/concurrency.test.mjs
 ```
 
-Los comandos se ejecutan en ese orden; no paralelizar los archivos. La suite nativa crea la misma fixture de 38 pruebas. La suite de concurrencia espera ese estado y utiliza varias conexiones, barrera de bloqueo observable en pg_stat_activity y timeouts. Compite por una única plaza cinco veces, compite por completar/reasignar una visita, por reprogramarla dos veces y por aprobar la misma propuesta dos veces. No reutilizar otra base ni un usuario de producción.
+Los comandos se ejecutan en ese orden; no paralelizar los archivos. La suite nativa crea la misma fixture de 40 pruebas. La suite de concurrencia espera ese estado y utiliza varias conexiones, barrera de bloqueo observable en pg_stat_activity y timeouts. Compite por una única plaza cinco veces, compite por completar/reasignar una visita, por reprogramarla dos veces y por aprobar la misma propuesta dos veces. No reutilizar otra base ni un usuario de producción.
 
 El intento local quedó bloqueado por permisos del entorno. Se resolvió ejecutando el mismo candidato en GitHub Actions con PostgreSQL 17.11 temporal: 32 pruebas nativas y 4 de concurrencia aprobadas. Ver RESULTS.md para run/commit. Las omisiones al ejecutar sin NATIVE_PG_URL siguen siendo explícitas; sólo la ejecución CI con conexiones reales acredita estas carreras.
 
@@ -73,3 +73,7 @@ tests/frontend-api.mjs conecta la interfaz existente con Auth/API local y RPC re
 Estado y evidencia de ejecución: RESULTS.md.
 
 Siguiente backend y gates: [NEXT-BACKEND.md](NEXT-BACKEND.md). No confundir estas pruebas con una validación del frontend publicado, Storage, Edge Functions de alta/reset, protección contra abuso o pruebas físicas. El backend remoto actual sigue intacto.
+
+## Diagnóstico y fallos de cuentas
+
+Dos RPC de estado limitadas a Central propio ayudan a comprobar altas/reset inciertos. Central recupera el resultado COMPLETE de un alta si pierde su respuesta; no desbloquea reset ni compensa desde el navegador. `node --test tests/account-failures.test.mjs` ejecuta ocho pruebas con fallos inyectados del SDK; el workflow las corre separadas de SQL y Auth reales. Procedimiento y pendientes: [RECOVERY.md](RECOVERY.md).

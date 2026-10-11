@@ -6,6 +6,8 @@ Este documento distingue candidato implementado y trabajo pendiente; no certific
 
 La migración account_provisioning y dos Edge Functions ya implementan autorización por empresa, reserva de cupo, replay de altas y compensación limitada al Auth recién creado. El laboratorio probó alta desde Central y reset real. El reset bloquea datos inmediatamente y, después de finalizar, exige sesión creada posteriormente: no equivale a revocar globalmente los JWT de GoTrue.
 
+Diagnóstico implementado: dos RPC de estado para Central, sin secretos internos ni acceso cruzado. Procedimiento y límites: [RECOVERY.md](RECOVERY.md).
+
 Pendiente: reconciliador de altas inciertas y resets interrumpidos, recuperación administrativa verificable, límites de abuso/MFA, CORS del destino y pruebas de cortes. Un reset pendiente no acepta otro cambio: conserva bloqueo hasta reconciliación; todavía no existe interfaz ni proceso automático de recuperación. No desbloquear por tiempo sin comprobar el resultado Auth.
 
 - Edge Functions nuevas, autenticadas: validar JWT con Auth y volver a consultar cuenta activa/empresa/rol en servidor; sólo Central administra Supervisor/Vendedor de su empresa. No confiar en user_metadata, role enviado por cliente ni company_id del formulario.

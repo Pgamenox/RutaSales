@@ -4,7 +4,7 @@
 
 | Estado | Evidencia vigente |
 |---|---|
-| Implementado | Cinco migraciones candidatas, RLS/tenant/licencias, RPC operativas y dos Edge Functions de alta/reset |
+| Implementado | Seis migraciones candidatas, RLS/tenant/licencias, RPC operativas y dos Edge Functions de alta/reset |
 | Probado | Ejecución vigente documentada al final: SQL en dos motores, carreras con conexiones independientes y Auth/API/interfaz real local |
 | Pendiente | Reconciliación de altas/reset inciertos, Storage privado e imagen íntegra, onboarding, operaciones restantes, abuso/MFA, carga, recuperación y campo |
 | Bloqueado | Despliegue comercial requiere entorno independiente y autorización; QA físico requiere dispositivos/operador |
@@ -87,3 +87,19 @@ Regresión local: 7 unitarias RutaSales y 12 pruebas Node RutaGPS aprobaron, inc
 Archivos de esta ampliación: config.toml; migration account_provisioning; funciones _shared/accounts.js, rutasales-admin-users/index.ts y rutasales-reset-password/index.ts; tests database/concurrency/auth-api/frontend-api/run-local-stack; central.html y cinco documentos de estado. No hubo rediseño ni cambios de estilos. ClickOnMe/MockuPro, RutaGPS/RutaGuard y bases remotas sin modificaciones; main verificado en `495862d2297b55fe76650dd55ab6ca8137a66bab`.
 
 Estado: candidato integrado para demo de laboratorio; sin merge ni nueva publicación. NO listo para comercialización. Próximo trabajo: reconciliación verificable de Auth/SQL inciertos, después Storage privado con decodificación completa de imagen y QA de accesos; continuar con onboarding, operaciones restantes, carga, respaldo/recuperación y prueba física.
+
+## Diagnóstico y confirmación tras respuesta perdida — continuación 2026-10-11
+
+Código candidato: `194957aa94a255e80ccad9210cb3f87ba3a09d9c`. Dos nuevas RPC de lectura: rs_account_request_status limita la consulta a la empresa y actor Central originales; rs_reset_status limita el destino a Supervisor/Vendedor activo de la empresa del Central. No revelan worker, nonce, correo, contraseñas ni sesiones. No modifican estados ni desbloquean operaciones inciertas.
+
+Central consulta automáticamente el estado del mismo request_id si la respuesta de alta falla o no confirma éxito. COMPLETE con user_id permite confirmar la cuenta que ya se guardó; no crea otro Auth. Un estado incierto conserva formulario/identificador y pide reconciliación. La clave todavía se conserva sólo durante esa página; persistencia tras recarga sigue pendiente.
+
+Se corrigió también la validación del formulario visible de reset: exige 12 caracteres en modo candidato, igual que Edge, y mantiene el mínimo anterior en modo publicado. Sin cambios de CSS ni rediseño.
+
+Ocho pruebas con dobles del SDK aprobaron localmente y en CI: reserva rechazada, creación Auth fallida, compensación exitosa/fallida, respuesta perdida tras COMMIT, identidad etiquetada recuperada, worker no autorizado y reset interrumpido. Son fallos controlados del handler; no equivalen a cortes reales de infraestructura. Procedimiento, estados y restricciones: [RECOVERY.md](RECOVERY.md).
+
+Pruebas SQL ampliadas: 40 locales aprobadas y 40 + 40 en CI, 6 carreras nativas y 8 de fallos controlados, sin fallos/omisiones. Regresión local: 7 unitarias RutaSales y 12 Node RutaGPS más el archivo adicional de límites, aprobadas. [Run 38122412707](https://github.com/Pgamenox/RutaSales/actions/runs/38122412707), commit indicado arriba: ambos jobs SUCCESS; 22 Auth/API/interfaz aprobadas, sin fallos/omisiones. El recorrido existente recuperó en Central la confirmación después de que la prueba sustituyera la respuesta de Edge por un fallo tras el alta real; continuó con una sola cuenta. También rechazó 11 caracteres en el formulario y completó reset por Edge desde Central, verificando finalización SQL. Viewports 390×844 y 1280×900; GPS/cámara sintéticos y Auth/API/SQL/PDF reales. Asesor local WARN/ERROR: exit 0 y No issues found. No constituye certificación externa ni QA físico.
+
+Archivos de esta continuación: migration 20261011074006_account_recovery_status.sql; tests account-failures, database, auth-api y frontend-api; workflow; central.html; RECOVERY, README, NEXT-BACKEND y RESULTS. main verificado intacto en 495862d2297b55fe76650dd55ab6ca8137a66bab. Sólo rama work/rutasales-commercial-2.0; sin merge, publicación ni acceso a bases ajenas.
+
+Estado comercial: NO APTO. Implementada recuperación de confirmación del alta en la misma pantalla y diagnóstico; reconciliación administrativa de estados inciertos sigue pendiente. Después: Storage privado/imagen íntegra, onboarding, operaciones restantes, carga, respaldo/restauración y QA físico.
