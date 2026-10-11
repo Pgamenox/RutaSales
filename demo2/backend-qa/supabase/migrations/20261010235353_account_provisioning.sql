@@ -104,6 +104,7 @@ DECLARE c uuid;
 BEGIN
  c:=rs_private.lock_actor();IF rs_private.role()<>'CENTRAL' OR p_nonce IS NULL THEN RAISE EXCEPTION 'central required';END IF;
  IF NOT EXISTS(SELECT 1 FROM public.rs_accounts WHERE user_id=p_target AND company_id=c AND role IN ('SUPERVISOR','VENDEDOR') AND active) THEN RAISE EXCEPTION 'target unauthorized';END IF;
+ IF EXISTS(SELECT 1 FROM rs_private.account_security WHERE user_id=p_target AND blocked) THEN RAISE EXCEPTION 'reset in progress; reconciliation required';END IF;
  INSERT INTO rs_private.account_security(user_id,nonce,actor_id,blocked,not_before) VALUES(p_target,p_nonce,auth.uid(),true,clock_timestamp()) ON CONFLICT(user_id) DO UPDATE SET nonce=excluded.nonce,actor_id=excluded.actor_id,blocked=true,not_before=excluded.not_before;
  INSERT INTO rs_private.audit(company_id,actor_id,action,details) VALUES(c,auth.uid(),'BEGIN_RESET',jsonb_build_object('target',p_target));RETURN p_target;
 END $$;
@@ -114,7 +115,7 @@ BEGIN
  SELECT t.company_id INTO c FROM public.rs_accounts t JOIN public.rs_accounts a ON a.company_id=t.company_id JOIN public.rs_companies co ON co.id=t.company_id WHERE t.user_id=p_target AND t.active AND t.role IN ('SUPERVISOR','VENDEDOR') AND a.user_id=p_actor AND a.active AND a.role='CENTRAL' AND co.active;
  IF c IS NULL THEN RAISE EXCEPTION 'target unauthorized';END IF;
  PERFORM 1 FROM public.rs_companies WHERE id=c FOR UPDATE;
- UPDATE rs_private.account_security SET blocked=false,not_before=clock_timestamp() WHERE user_id=p_target AND nonce=p_nonce AND actor_id=p_actor;
+ UPDATE rs_private.account_security SET blocked=false,not_before=clock_timestamp() WHERE user_id=p_target AND nonce=p_nonce AND actor_id=p_actor AND blocked;
  IF NOT FOUND THEN RAISE EXCEPTION 'reset superseded';END IF;
  INSERT INTO rs_private.audit(company_id,actor_id,action,details) VALUES(c,p_actor,'FINISH_RESET',jsonb_build_object('target',p_target));
 END $$;
