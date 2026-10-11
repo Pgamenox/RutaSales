@@ -1,8 +1,12 @@
 # Próximo backend independiente — condiciones de implementación
 
-Este documento es diseño pendiente, no código operativo ni evidencia de seguridad. No enlazar el laboratorio a un proyecto existente ni aplicar el baseline sobre datos reales. ClickOnMe y MockuPro quedan fuera; RutaGPS y RutaGuard sólo tendrán contratos versionados futuros, sin acceso directo a datos.
+Este documento distingue candidato implementado y trabajo pendiente; no certifica producción. No enlazar el laboratorio a un proyecto existente ni aplicar el baseline sobre datos reales. ClickOnMe y MockuPro quedan fuera; RutaGPS y RutaGuard sólo tendrán contratos versionados futuros, sin acceso directo a datos.
 
-## Alta y reset de cuentas
+## Alta y reset de cuentas — candidato implementado
+
+La migración account_provisioning y dos Edge Functions ya implementan autorización por empresa, reserva de cupo, replay de altas y compensación limitada al Auth recién creado. El laboratorio probó alta desde Central y reset real. El reset bloquea datos inmediatamente y, después de finalizar, exige sesión creada posteriormente: no equivale a revocar globalmente los JWT de GoTrue.
+
+Pendiente: reconciliador de altas inciertas y resets interrumpidos, recuperación administrativa verificable, límites de abuso/MFA, CORS del destino y pruebas de cortes. Un reset pendiente no acepta otro cambio: conserva bloqueo hasta reconciliación; todavía no existe interfaz ni proceso automático de recuperación. No desbloquear por tiempo sin comprobar el resultado Auth.
 
 - Edge Functions nuevas, autenticadas: validar JWT con Auth y volver a consultar cuenta activa/empresa/rol en servidor; sólo Central administra Supervisor/Vendedor de su empresa. No confiar en user_metadata, role enviado por cliente ni company_id del formulario.
 - Alta: idempotency key, reserva de cupo bajo bloqueo de empresa, expiración/reconciliación de reservas, creación Auth fuera de transacción SQL y finalización atómica de cuenta/vendedor. La misma clave debe recuperar el resultado, no crear una segunda cuenta.
@@ -23,7 +27,7 @@ Este documento es diseño pendiente, no código operativo ni evidencia de seguri
 1. Completar las dos áreas anteriores y probarlas en el stack efímero sin credenciales productivas.
 2. Resolver paquetes/licencias y UI Central/Superadmin, edición/alta de rutas/clientes y onboarding. El adaptador actual conecta sólo las operaciones explícitamente documentadas en RESULTS.md.
 3. Añadir idempotencia durable a creación de incidencias y recuperación del resultado de RPC tras pérdida de respuesta. Probar recuperación tras cortes/reintentos, carga simultánea, índices y respaldo/restauración. Las cuatro carreras específicas de QA no certifican capacidad comercial general.
-4. Repetir el ciclo de la interfaz contra el backend real candidato con usuarios creados por Edge, no bootstrap de pruebas.
+4. Ampliar el recorrido real: el reemplazo Vendedor ya se crea desde Central por Edge; las empresas, Central y Supervisor iniciales siguen siendo bootstrap de QA. Falta onboarding completo y recuperación.
 5. Realizar QA físico móvil GPS/cámara/PDF y revisión de permisos en el entorno de destino independiente.
 6. Preparar release y rollback revisables. La rama y PR permanecen sin merge/publicación hasta autorización específica.
 

@@ -2,7 +2,9 @@
 
 Fecha: 2026-10-10. Rama: `work/rutasales-commercial-2.0`. Base: `495862d2297b55fe76650dd55ab6ca8137a66bab`.
 
-**Decisión comercial: NO APTO todavía.** Hay correcciones de interfaz probadas y un ciclo demostrativo completo; no hay evidencia suficiente de seguridad multiempresa, concurrencia transaccional ni pruebas de campo. No se fusionó ni publicó esta entrega. RutaGPS, RutaGuard, la demo antigua, estilos y bases existentes permanecen sin cambios.
+**Decisión comercial: NO APTO todavía.** El candidato independiente ya tiene pruebas de aislamiento multiempresa, carreras transaccionales, Auth/API/interfaz y alta/reset reales en laboratorio. Falta recuperación de operaciones inciertas, evidencias privadas completas, carga general y pruebas de campo. No se fusionó ni publicó esta entrega. RutaGPS, RutaGuard, la demo antigua, estilos y bases existentes permanecen sin cambios.
+
+> Actualización 2026-10-11: [RESULTS.md](backend-qa/RESULTS.md) contiene el resultado vigente. Las tablas y hallazgos iniciales siguientes describen la auditoría histórica del backend publicado, no los avances del candidato.
 
 ## Alcance y evidencia
 

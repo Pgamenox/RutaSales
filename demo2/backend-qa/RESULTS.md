@@ -1,13 +1,17 @@
-# Resultado QA backend — 2026-10-10
+# Resultado QA backend — actualizado 2026-10-11
 
-| Estado | Evidencia |
+> Evidencia vigente al final de este documento. Las secciones anteriores conservan resultados históricos.
+
+| Estado | Evidencia vigente |
 |---|---|
-| Implementado | Cuatro migraciones candidatas, 9 tablas públicas con RLS, FK tenant, licencias y ocho RPC; sin enlace remoto |
-| Probado | 32 pruebas SQL embebidas, 32 en PostgreSQL 17.11 nativo, 4 de concurrencia y 15 Auth/API/interfaz con GoTrue y PostgREST reales; dos empresas, roles, cuota, licencias, rollback, propuestas, reprogramación y baja |
-| Pendiente | Edge de alta/reset, revocación de sesiones, Storage privado, alta/edición de rutas/clientes, onboarding/UI Superadmin, idempotencia de reintentos, auditoría externa, carga general y campo |
-| Bloqueado | Despliegue comercial requiere entorno independiente definido y autorizado; QA físico GPS/cámara requiere dispositivos. Contenedores efímeros resuelven los bloqueos de laboratorio |
-| Listo para demo | Laboratorio integrado de interfaz/API reproducible; la interfaz publicada conserva backend anterior |
+| Implementado | Cinco migraciones candidatas, RLS/tenant/licencias, RPC operativas y dos Edge Functions de alta/reset |
+| Probado | Ejecución vigente documentada al final: SQL en dos motores, carreras con conexiones independientes y Auth/API/interfaz real local |
+| Pendiente | Reconciliación de altas/reset inciertos, Storage privado e imagen íntegra, onboarding, operaciones restantes, abuso/MFA, carga, recuperación y campo |
+| Bloqueado | Despliegue comercial requiere entorno independiente y autorización; QA físico requiere dispositivos/operador |
+| Listo para demo | Laboratorio integrado reproducible; frontend publicado conserva backend anterior |
 | Listo para comercialización | NO |
+
+## Evidencia histórica
 
 Pruebas SQL: 23 aprobadas en cada motor, 0 fallidas. Concurrencia nativa: 2 aprobadas, 0 omitidas. Evidencia: [GitHub Actions run 38090566121](https://github.com/Pgamenox/RutaSales/actions/runs/38090566121), commit af15eb4afe603912c3b7334820ed720f677a4338. El motor ejecuta políticas RLS reales usando un contexto auth de prueba; no valida tokens ni infraestructura Supabase.
 
@@ -63,3 +67,23 @@ Dos intentos del navegador fallaron por selectores de QA ambiguos: nombre de cli
 Siguiente trabajo detallado: [NEXT-BACKEND.md](NEXT-BACKEND.md). El próximo bloque implementable es alta/reset con reserva de cupo, idempotencia, compensación y permisos por empresa; después, evidencia privada. Ningún código de esos dos bloques se declara implementado aquí.
 
 Archivos añadidos/modificados en esta continuación: migration 20261010233413_operational_rpcs.sql; tests database, concurrency, auth-api, frontend-api y run-local-stack; package.json/lock; workflow; demo2/backend-operations.js, common.js, central.html, supervisor.js y vendedor.js; README, RESULTS, NEXT-BACKEND y estado/auditoría. Todos pertenecen a RutaSales y su QA. ClickOnMe/MockuPro no se usaron ni modificaron; RutaGPS/RutaGuard sin cambios; main intacto y PR #2 borrador.
+
+## Alta/reset por empresa y concurrencia — 2026-10-11
+
+Evidencia del alta/reset integrado: [run 38096900468](https://github.com/Pgamenox/RutaSales/actions/runs/38096900468), commit `3f93e02e47040b24df68d3e5ed41151fd778dec6`: 37 + 37 SQL, 4 carreras y 20 Auth/API/interfaz, cero fallidas u omitidas. Incluye Edge Runtime local y creación de un Vendedor desde la pantalla Central; las empresas/Central/Supervisor iniciales siguen siendo bootstrap de QA.
+
+La quinta migración añade reserva privada de cupo, idempotencia de alta, finalización SQL atómica y auditoría. Las dos Edge Functions validan JWT con GoTrue y autorizan al Central por empresa/rol en SQL. Nunca aceptan company_id del formulario ni exponen service_role. Una reserva ocupa plaza para todos los escritores y las reducciones de licencia. Replay de alta devuelve el usuario original; conflictos no duplican cuentas.
+
+Se probó compensación tras fallo del vínculo vendedor: se eliminó exclusivamente el Auth creado por esa solicitud y se conservó el Auth preexistente al intentar usar su correo. Estados inciertos conservan reserva privada para reconciliación; no existe aún un reconciliador operativo. CORS sólo acepta localhost/127.0.0.1 en este candidato de QA y requiere configuración explícita para otro destino.
+
+Reset real: Supervisor, Central ajeno y destino Central rechazados. Se cambió contraseña del Vendedor propio; contraseña anterior rechazó login, nueva sesión obtuvo datos y JWT anterior perdió acceso. Si GoTrue admite renovar el refresh anterior, ese token tampoco obtiene datos. Esto acredita bloqueo RLS por session_id y fecha de creación de auth.sessions, no revocación global de JWT/Auth. El código sólo lee auth.sessions; no modifica tablas internas de Auth.
+
+La revisión posterior detectó resets solapados que podían sustituir nonce durante el cambio de contraseña en Auth. Commit `926719d33715050ff1c25505750f3cd19e9dd969` rechaza un nuevo reset mientras el anterior sigue bloqueado y evita finalizarlo dos veces. Un reset interrumpido queda cerrado al acceso hasta reconciliación administrativa; esa recuperación y su interfaz siguen pendientes y bloquean comercialización.
+
+Pruebas ampliadas: 38 SQL embebidas locales aprobaron; [run 38121806810](https://github.com/Pgamenox/RutaSales/actions/runs/38121806810) confirmó 38 + 38 SQL, 6 carreras nativas y 20 Auth/API/interfaz, cero fallidas/omitidas. Ambos jobs SUCCESS. Asesor local WARN/ERROR: exit 0, No issues found; no sustituye revisión externa ni del entorno productivo. Dos conexiones con barrera observable comprobaron un solo ganador para reset y para reserva de última plaza; una inserción directa no pudo eludir la reserva.
+
+Regresión local: 7 unitarias RutaSales y 12 pruebas Node RutaGPS aprobaron, incluyendo el archivo adicional de límites de licencia. La repetición de navegador local quedó bloqueada por ausencia del binario por defecto; usando el binario disponible falló el arranque con SIGSEGV antes de probar pantallas. No se atribuye ese fallo al producto ni se declara aprobada esa repetición local. La prueba real de interfaz se ejecuta en Chromium del runner compatible.
+
+Archivos de esta ampliación: config.toml; migration account_provisioning; funciones _shared/accounts.js, rutasales-admin-users/index.ts y rutasales-reset-password/index.ts; tests database/concurrency/auth-api/frontend-api/run-local-stack; central.html y cinco documentos de estado. No hubo rediseño ni cambios de estilos. ClickOnMe/MockuPro, RutaGPS/RutaGuard y bases remotas sin modificaciones; main verificado en `495862d2297b55fe76650dd55ab6ca8137a66bab`.
+
+Estado: candidato integrado para demo de laboratorio; sin merge ni nueva publicación. NO listo para comercialización. Próximo trabajo: reconciliación verificable de Auth/SQL inciertos, después Storage privado con decodificación completa de imagen y QA de accesos; continuar con onboarding, operaciones restantes, carga, respaldo/recuperación y prueba física.

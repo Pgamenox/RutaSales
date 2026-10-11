@@ -12,7 +12,7 @@ npm test
 npm run test:concurrency
 ```
 
-El primer comando de pruebas ejecuta PostgreSQL embebido (PGlite 0.3.14), las migraciones SQL y datos ficticios en memoria. **32 pruebas SQL locales aprobadas.** El segundo omite explícitamente cuatro pruebas cuando falta NATIVE_PG_URL. Eso no constituye aprobación de concurrencia.
+El primer comando de pruebas ejecuta PostgreSQL embebido (PGlite 0.3.14), las migraciones SQL y datos ficticios en memoria. **38 pruebas SQL locales aprobadas; evidencia nativa vigente en RESULTS.md.** El segundo omite explícitamente seis pruebas cuando falta NATIVE_PG_URL. Eso no constituye aprobación de concurrencia.
 
 Auth en esta suite es una función de prueba `auth.uid()` con el UUID de sesión y roles SQL anon/authenticated. Las políticas RLS sí son ejecutadas por el motor PostgreSQL; no hay firmas JWT, servidor Auth, PostgREST, Storage ni Edge Functions reales. No usar este stub en Supabase. El esquema auth del servicio real lo administra Supabase.
 
@@ -28,7 +28,7 @@ node --test tests/database.test.mjs
 node --test tests/concurrency.test.mjs
 ```
 
-Los comandos se ejecutan en ese orden; no paralelizar los archivos. La suite nativa crea la misma fixture de 32 pruebas. La suite de concurrencia espera ese estado y utiliza varias conexiones, barrera de bloqueo observable en pg_stat_activity y timeouts. Compite por una única plaza cinco veces, compite por completar/reasignar una visita, por reprogramarla dos veces y por aprobar la misma propuesta dos veces. No reutilizar otra base ni un usuario de producción.
+Los comandos se ejecutan en ese orden; no paralelizar los archivos. La suite nativa crea la misma fixture de 38 pruebas. La suite de concurrencia espera ese estado y utiliza varias conexiones, barrera de bloqueo observable en pg_stat_activity y timeouts. Compite por una única plaza cinco veces, compite por completar/reasignar una visita, por reprogramarla dos veces y por aprobar la misma propuesta dos veces. No reutilizar otra base ni un usuario de producción.
 
 El intento local quedó bloqueado por permisos del entorno. Se resolvió ejecutando el mismo candidato en GitHub Actions con PostgreSQL 17.11 temporal: 32 pruebas nativas y 4 de concurrencia aprobadas. Ver RESULTS.md para run/commit. Las omisiones al ejecutar sin NATIVE_PG_URL siguen siendo explícitas; sólo la ejecución CI con conexiones reales acredita estas carreras.
 
@@ -54,7 +54,7 @@ La futura migración de datos necesita un mapa empresa→filas validado, claves 
 
 ## Integración y cierre pendientes
 
-El frontend continúa usando su backend actual y operaciones antiguas. No activar estas migraciones detrás del frontend publicado. El adaptador RPC sólo se habilita en la respuesta del servidor QA loopback; candidateBackend=false permanece en el código de producto. Alta Auth requiere una Edge Function actualizada con reserva/idempotencia/compensación, y bootstrap administrado; no copiar las Edge Functions heredadas sin tenant.
+El frontend continúa usando su backend actual y operaciones antiguas. No activar estas migraciones detrás del frontend publicado. El adaptador RPC sólo se habilita en la respuesta del servidor QA loopback; candidateBackend=false permanece en el código de producto. Alta/reset tienen dos Edge Functions candidatas con autorización tenant, reserva/idempotencia/compensación. Falta bootstrap administrado y reconciliación; no copiar las Edge Functions heredadas sin tenant.
 
 Incidencias/propuestas, resolución/aprobación, reprogramación y asignación de rutas ya tienen RPC candidatas. Faltan alta/edición de rutas, permisos de cambios de clientes; onboarding de empresas y UI Superadmin; trazabilidad de licencias con políticas de retención; carga/índices de todas las FK y plan de recuperación. No se habilita todavía escritura amplia para sustituir esas operaciones ausentes.
 
@@ -64,11 +64,11 @@ Compatibilidad futura con RutaGPS/RutaGuard: tenant e identificadores externos e
 
 ## Auth y API reales en CI (comprobación independiente)
 
-`tests/run-local-stack.mjs` está restringido a un runner GitHub hospedado y efímero. CLI Supabase 2.120.0 fijado en el lockfile; arranca únicamente PostgreSQL, GoTrue, PostgREST y gateway local. Aplica migraciones con `db reset --local`, comprueba URLs loopback, rechaza un proyecto enlazado y elimina contenedores/volúmenes al terminar. No crea proyectos en la cuenta Supabase ni utiliza sus credenciales.
+`tests/run-local-stack.mjs` está restringido a un runner GitHub hospedado y efímero. CLI Supabase 2.120.0 fijado en el lockfile; arranca PostgreSQL, GoTrue, PostgREST, gateway y Edge Runtime locales. Aplica migraciones con `db reset --local`, comprueba URLs loopback, rechaza un proyecto enlazado y elimina contenedores/volúmenes al terminar. No crea proyectos en la cuenta Supabase ni utiliza sus credenciales.
 
 `tests/auth-api.test.mjs` crea ocho usuarios ficticios mediante Auth admin local, inicia sesiones con contraseña y utiliza JWT firmados por GoTrue para REST/RPC. Incluye sesiones de Central/Supervisor/Vendedor/Superadmin, credenciales incorrectas, JWT adulterado, signup deshabilitado, anon, dos empresas, user_metadata alterado con JWT nuevo, asignación, finalización, vencimiento/renovación y baja con un JWT todavía válido. Las claves y contraseñas temporales no se imprimen ni se guardan en Git.
 
-tests/frontend-api.mjs conecta la interfaz existente con Auth/API local y RPC reales; bloquea solicitudes externas y sirve bundles locales de SDK y PDF. GPS/cámara son sintéticos, mientras que sesiones, RLS, SQL y PDF son reales. No hace altas/reset por Edge: los usuarios del recorrido se crean en el bootstrap de QA.
+tests/frontend-api.mjs conecta la interfaz existente con Auth/API local y RPC reales; bloquea solicitudes externas y sirve bundles locales de SDK y PDF. GPS/cámara son sintéticos, mientras que sesiones, RLS, SQL y PDF son reales. El reemplazo Vendedor del recorrido se crea desde Central mediante Edge real. Empresa/Central/Supervisor iniciales son bootstrap de QA; reset se prueba por API.
 
 Estado y evidencia de ejecución: RESULTS.md.
 
