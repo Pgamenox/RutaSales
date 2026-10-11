@@ -1,4 +1,6 @@
-import {supabase,$,esc,requireRole,logout,geo} from "./common.js";
+import {candidateOperations} from './backend-operations.js';
+import {zoneKey,updateOne} from "./operations.js";
+import {supabase,$,esc,requireRole,logout,geo,candidateBackend} from "./common.js";
 
 let account=null;
 let routes=[];
@@ -43,7 +45,7 @@ async function load(){
   $("visitsList").innerHTML=visits.length?visits.map(v=>{
     const route=esc(routeName(v.route_id));
     if(v.status!=="PENDIENTE"){
-      const zone=Number.isFinite(Number(v.distance_m))
+      const zone=zoneKey(v.distance_m)!=="none"
         ? (Number(v.distance_m)<=100?"✅ VÁLIDA":Number(v.distance_m)<=250?"⚠️ REVISAR":"❌ FUERA DE ZONA")
         : "";
       return '<div class="visit"><b>'+esc(v.customer_name)+'</b> <span class="badge">'+esc(v.status)+'</span><div class="small">'+route+' · '+esc(v.address)+' · '+esc(v.visit_date)+'</div><div class="ok">Evidencia enviada '+zone+'</div></div>';
@@ -144,6 +146,11 @@ async function snapshot(){
 }
 
 $("snapBtn").onclick=async()=>{
+ if($("snapBtn").disabled)return;$("snapBtn").disabled=true;
+ try{await sendSnapshot()}finally{$("snapBtn").disabled=false}
+};
+const backend=candidateOperations(supabase);
+async function sendSnapshot(){
   let photo;
   try{photo=await snapshot()}catch(e){return alert(e.message)}
 
@@ -151,11 +158,10 @@ $("snapBtn").onclick=async()=>{
     const id=currentVisitId,g=pendingGps[id];
     if(!id||!g)return;
     if(Date.now()-g.capturedAt>120000){closeCamera();delete pendingGps[id];await load();return alert("El GPS venció. Repite el paso 1.");}
-    const {error}=await supabase.from("rs_visits").update({
+    try{if(candidateBackend){await backend.complete(id,g,photo)}else{await updateOne(supabase.from("rs_visits").update({
       status:"COMPLETADA",lat:g.lat,lng:g.lng,accuracy:g.accuracy,
       photo_data:photo,evidence_source:"LIVE_CAMERA",device_captured_at:new Date().toISOString()
-    }).eq("id",id);
-    if(error)return alert("No se pudo enviar: "+error.message);
+    }).eq("id",id).eq("seller_id",account.seller_id).eq("status","PENDIENTE"))}}catch(e){return alert("No se pudo enviar: "+e.message)}
     delete pendingGps[id];closeCamera();alert("Visita enviada con GPS + cámara en vivo.");await load();
   }
 
@@ -168,7 +174,7 @@ $("snapBtn").onclick=async()=>{
     const {data,error}=await supabase.rpc("rs_reprogram_visit",{
       p_visit_id:id,p_reprogram_for:iso,p_reason:reason,
       p_lat:g.lat,p_lng:g.lng,p_accuracy:g.accuracy,p_photo_data:photo,
-      p_device_captured_at:new Date().toISOString()
+      p_device_captured_at:new Date(g.capturedAt).toISOString()
     });
     if(error)return alert("No se pudo reprogramar: "+error.message);
     delete pendingGps[id];reprogramVisitId=null;closeCamera();$("reprogramReason").value="";
@@ -179,11 +185,12 @@ $("snapBtn").onclick=async()=>{
     const g=incidentGps;
     if(!incidentRouteId||!g)return;
     if(Date.now()-g.capturedAt>120000){closeCamera();return alert("El GPS del imprevisto venció.");}
-    const {error}=await supabase.from("rs_incidents").insert({
+    let error;
+    if(candidateBackend){try{await backend.submit(incidentRouteId,$("incidentType").value,$("incidentDetails").value.trim(),null,null,g,photo)}catch(e){error=e}}else{({error}=await supabase.from("rs_incidents").insert({
       route_id:incidentRouteId,seller_id:account.seller_id,
       incident_type:$("incidentType").value,details:$("incidentDetails").value.trim(),
       lat:g.lat,lng:g.lng,accuracy:g.accuracy,photo_data:photo,resolved:false
-    });
+    }));}
     if(error)return alert("No se pudo enviar el imprevisto: "+error.message);
     closeCamera();$("incidentModal").classList.add("hidden");$("incidentDetails").value="";
     incidentRouteId=null;incidentGps=null;alert("Imprevisto enviado al supervisor.");await load();
@@ -193,16 +200,17 @@ $("snapBtn").onclick=async()=>{
     const g=proposalGps,name=$("proposalName").value.trim(),address=$("proposalAddress").value.trim(),routeId=$("proposalRoute").value;
     if(!g||!name||!routeId)return;
     if(Date.now()-g.capturedAt>120000){closeCamera();return alert("El GPS venció.");}
-    const {error}=await supabase.from("rs_incidents").insert({
+    let error;
+    if(candidateBackend){try{await backend.submit(routeId,"NUEVO CLIENTE","Alta propuesta por vendedor",name,address,g,photo)}catch(e){error=e}}else{({error}=await supabase.from("rs_incidents").insert({
       route_id:routeId,seller_id:account.seller_id,incident_type:"NUEVO CLIENTE",
       details:"Alta propuesta por vendedor",proposal_name:name,proposal_address:address,
       lat:g.lat,lng:g.lng,accuracy:g.accuracy,photo_data:photo,resolved:false
-    });
+    }));}
     if(error)return alert("No se pudo enviar el negocio: "+error.message);
     closeCamera();$("proposalName").value="";$("proposalAddress").value="";proposalGps=null;
     alert("Negocio enviado al supervisor para aprobación.");await load();
   }
-};
+}
 
 $("reprogramContinue").onclick=async()=>{
   const id=reprogramVisitId,g=pendingGps[id];

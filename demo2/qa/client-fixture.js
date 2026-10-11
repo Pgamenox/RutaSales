@@ -1,0 +1,7 @@
+// Test-only client for isolated local server. Never imported by product.
+export function createClient(){
+ const session=()=>JSON.parse(localStorage.getItem('qa-session')||'null');
+ const auth={getSession:async()=>({data:{session:session()}}),signOut:async()=>{localStorage.removeItem('qa-session');return{}},signInWithPassword:async({email,password})=>{const r=await fetch('/qa/login',{method:'POST',body:JSON.stringify({email,password})});const x=await r.json();if(x.data?.session)localStorage.setItem('qa-session',JSON.stringify(x.data.session));return x}};
+ function query(table){const spec={table,action:'select',fields:'*',filters:[],orders:[]};const q={select:(fields='*',options={})=>{spec.fields=fields;spec.options=options;return q},insert:value=>{spec.action='insert';spec.value=value;return q},update:value=>{spec.action='update';spec.value=value;return q},order:(field,options={})=>{spec.orders.push({field,ascending:options.ascending!==false});return q},range:(a,b)=>{spec.range=[a,b];return q},limit:n=>{spec.limit=n;return q},single:()=>{spec.single=true;return q},maybeSingle:()=>{spec.maybeSingle=true;return q},then:(ok,bad)=>fetch('/qa/query',{method:'POST',body:JSON.stringify({...spec,user:session()?.user?.id})}).then(r=>r.json()).then(ok,bad)};for(const op of ['eq','in','gt','gte','lte'])q[op]=(field,value)=>{spec.filters.push({op,field,value});return q};return q}
+ return {auth,from:query,rpc:async(name,args)=>{const r=await fetch('/qa/rpc',{method:'POST',body:JSON.stringify({name,args,user:session()?.user?.id})});return r.json()}};
+}

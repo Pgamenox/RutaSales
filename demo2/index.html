@@ -8,18 +8,19 @@
 <div class="card"><b>Primera configuración</b><div class="small">Solo se usa una vez para crear la cuenta Central.</div>
 <a href="setup.html"><button class="light">Configurar Central</button></a></div>
 </main><script type="module">
+import {rolePage} from "./operations.js";
 import {supabase,$} from "./common.js";
 const {data:{session}}=await supabase.auth.getSession();
 if(session){
- const {data:a}=await supabase.from("rs_accounts").select("role").eq("user_id",session.user.id).single();
- if(a) location.href=a.role==="CENTRAL"?"central.html":a.role==="SUPERVISOR"?"supervisor.html":"vendedor.html";
+ const {data:a}=await supabase.from("rs_accounts").select("role,active").eq("user_id",session.user.id).single();
+ if(rolePage(a))location.href=rolePage(a);else await supabase.auth.signOut();
 }
 $("login").onclick=async()=>{
  $("msg").textContent="Validando…";
  const {data,error}=await supabase.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
  if(error){$("msg").textContent="Acceso no válido.";return}
  const {data:a,error:e}=await supabase.from("rs_accounts").select("role,active").eq("user_id",data.user.id).single();
- if(e||!a?.active){await supabase.auth.signOut();$("msg").textContent="Usuario sin acceso activo.";return}
- location.href=a.role==="CENTRAL"?"central.html":a.role==="SUPERVISOR"?"supervisor.html":"vendedor.html";
+ if(e||!rolePage(a)){await supabase.auth.signOut();$("msg").textContent="Usuario sin acceso activo.";return}
+ location.href=rolePage(a);
 };
 </script></body></html>

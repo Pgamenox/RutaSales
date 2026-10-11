@@ -25,10 +25,13 @@
 
 <div class="card"><b>Asignar rutas a supervisor</b><div id="routes">Cargando…</div></div>
 </main><script type="module">
-import {supabase,$,esc,requireRole,logout,URL,KEY} from "./common.js";
+import {candidateOperations} from './backend-operations.js';
+const backend=candidateOperations(supabase);
+import {updateOne,fetchAll} from "./operations.js";
+import {supabase,$,esc,requireRole,logout,URL,KEY,candidateBackend} from "./common.js";
 let session,account,accounts=[],routes=[],sellerCount=0;
 async function load(){
- const x=await requireRole("CENTRAL"); if(!x)return; session=x.session;account=x.account;$("welcome").textContent="Central · "+account.full_name;
+ const x=await requireRole("CENTRAL"); if(!x)return; session=x.session;account=x.account;if(candidateBackend)$("resetPass").placeholder="Mínimo 12 caracteres";$("welcome").textContent="Central · "+account.full_name;
  const [{data:a,error:ae},{data:r,error:re},{data:v,error:ve}]=await Promise.all([
   supabase.from("rs_accounts").select("*").order("created_at"),
   supabase.from("rs_routes").select("*").order("name"),
@@ -43,12 +46,13 @@ async function load(){
  $("resetUser").innerHTML=resettable.map(x=>'<option value="'+x.user_id+'">'+esc(x.full_name)+' · '+x.role+'</option>').join("");
  $("users").innerHTML=accounts.map(x=>{
  const seller=x.role==="VENDEDOR"&&x.seller_id?((accounts.filter(a=>a.role==="VENDEDOR"&&a.active&&a.seller_id&&a.seller_id!==x.seller_id).map(a=>'<option value="'+a.seller_id+'">'+esc(a.full_name)+'</option>').join(""))):"";
- const deactivate=(x.role==="VENDEDOR"&&x.active&&x.seller_id)?'<div style="margin-top:8px"><label>Reasignar pendientes a</label><select id="replace_'+x.seller_id+'"><option value="">Dejar sin reasignar</option>'+seller+'</select><button class="light" onclick="deactivateSeller(\''+x.user_id+'\',\''+x.seller_id+'\',\''+esc(x.full_name).replace(/'/g,"&#39;")+'\')">Desactivar vendedor</button></div>':"";
+ const deactivate=(x.role==="VENDEDOR"&&x.active&&x.seller_id)?'<div style="margin-top:8px"><label>Reasignar pendientes a</label><select id="replace_'+x.seller_id+'"><option value="">Dejar sin reasignar</option>'+seller+'</select><button class="light" onclick="deactivateSeller(\''+x.user_id+'\',\''+x.seller_id+'\')">Desactivar vendedor</button></div>':"";
  return '<div class="visit"><b>'+esc(x.full_name)+'</b> <span class="badge">'+x.role+'</span><div class="small">'+(x.active?"ACTIVO":"INACTIVO")+(x.role==="VENDEDOR"?" · ocupa 1 de 12 licencias":"")+'</div>'+deactivate+'</div>';
 }).join("")||'<div class="small">Sin usuarios.</div>';
  $("routes").innerHTML=routes.map(r=>'<div class="visit"><b>'+esc(r.name)+'</b><select id="route_'+r.id+'"><option value="">Sin supervisor</option>'+sups.map(s=>'<option value="'+s.user_id+'" '+(r.supervisor_user_id===s.user_id?"selected":"")+'>'+esc(s.full_name)+'</option>').join("")+'</select><button onclick="assignRoute(\''+r.id+'\')">Guardar asignación</button></div>').join("");
 }
 $("newRole").onchange=()=>{$("supWrap").style.display=$("newRole").value==="VENDEDOR"?"block":"none"};
+let candidateRequest=null;
 $("createUser").onclick=async()=>{
  $("createMsg").textContent="Creando…";
  const payload={full_name:$("newName").value.trim(),email:$("newEmail").value.trim(),password:$("newPass").value,role:$("newRole").value};
@@ -58,35 +62,42 @@ $("createUser").onclick=async()=>{
    payload.supervisor_user_id=$("newSupervisor").value||null;
    if(!payload.supervisor_user_id){$("createMsg").textContent="Primero crea y selecciona un Supervisor.";return}
  }
- const r=await fetch(URL+"/functions/v1/rutasales-admin-users",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY,Authorization:"Bearer "+session.access_token},body:JSON.stringify(payload)});
- const j=await r.json(); if(!r.ok){$("createMsg").textContent=j.error||"Error";return}
- $("createMsg").textContent="Usuario creado."; $("newName").value="";$("newEmail").value="";$("newPass").value="";await load();
+ if(candidateBackend){const signature=JSON.stringify(payload);if(candidateRequest?.signature!==signature)candidateRequest={signature,id:crypto.randomUUID()};payload.request_id=candidateRequest.id;}
+ let r,j;
+ try{r=await fetch(URL+"/functions/v1/rutasales-admin-users",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY,Authorization:"Bearer "+session.access_token},body:JSON.stringify(payload)});j=await r.json()}catch{r=null;j={error:"No se pudo confirmar el alta. Conserva los datos y revisa el estado."}}
+ if(candidateBackend&&r?.ok&&j?.ok!==true)r=null;
+ if(!r?.ok&&candidateBackend){
+   const {data:state,error}=await supabase.rpc("rs_account_request_status",{p_id:payload.request_id});
+   if(!error&&state?.state==="COMPLETE"&&state.user_id){r={ok:true};j={ok:true}}
+   else if(!error&&state?.needs_reconciliation){j={error:"Alta pendiente de reconciliación. Solicitud: "+payload.request_id}}
+ }
+ if(!r?.ok){$("createMsg").textContent=j?.error||"Error";return}
+ candidateRequest=null;$("createMsg").textContent="Usuario creado."; $("newName").value="";$("newEmail").value="";$("newPass").value="";await load();
 };
-window.assignRoute=async id=>{const val=$("route_"+id).value||null;const {error}=await supabase.from("rs_routes").update({supervisor_user_id:val}).eq("id",id);if(error)alert(error.message);else await load()};
-window.deactivateSeller=async(userId,sellerId,name)=>{
+window.assignRoute=async id=>{const val=$("route_"+id).value||null;try{if(candidateBackend){await backend.assignRoute(id,val)}else{await updateOne(supabase.from("rs_routes").update({supervisor_user_id:val}).eq("id",id))}await load()}catch(e){alert(e.message)}};
+window.deactivateSeller=async(userId,sellerId)=>{
+ const name=accounts.find(a=>a.user_id===userId)?.full_name||"este vendedor";
  if(!confirm("¿Desactivar a "+name+"? El historial se conservará."))return;
  const replacement=$("replace_"+sellerId)?.value||null;
- const {data:pending,error:pe}=await supabase.from("rs_visits").select("id,original_seller_id").eq("seller_id",sellerId).in("status",["PENDIENTE","REPROGRAMADA"]);
- if(pe)return alert("No se pudieron consultar pendientes: "+pe.message);
+ if(candidateBackend){try{const n=await backend.deactivate(sellerId,replacement);alert("Vendedor desactivado. Historial conservado. Pendientes reasignados: "+n);await load()}catch(e){alert(e.message)}return;}
+ let pending;
+ try{pending=await fetchAll(()=>supabase.from("rs_visits").select("id,original_seller_id,status").eq("seller_id",sellerId).in("status",["PENDIENTE","REPROGRAMADA"]).order("id"))}catch(e){return alert("No se pudieron consultar pendientes: "+e.message)}
  if((pending||[]).length&&replacement){
    for(const v of pending){
-     const {error}=await supabase.from("rs_visits").update({seller_id:replacement,original_seller_id:v.original_seller_id||sellerId}).eq("id",v.id);
-     if(error)return alert("No se pudo reasignar una visita: "+error.message);
+     try{await updateOne(supabase.from("rs_visits").update({seller_id:replacement,original_seller_id:v.original_seller_id||sellerId}).eq("id",v.id).eq("seller_id",sellerId).eq("status",v.status))}catch(e){return alert("Reasignación incompleta; actualiza antes de reintentar: "+e.message)}
    }
    const {error:he}=await supabase.from("rs_reassignments").insert({from_seller_id:sellerId,to_seller_id:replacement,pending_count:(pending||[]).length,reason:"Baja/desactivación de vendedor desde Central"});
    if(he)return alert("Las visitas se movieron, pero falló el historial: "+he.message);
  }
- const {error:se}=await supabase.from("rs_sellers").update({active:false}).eq("id",sellerId);
- if(se)return alert("No se pudo desactivar vendedor: "+se.message);
- const {error:ae}=await supabase.from("rs_accounts").update({active:false}).eq("user_id",userId);
- if(ae)return alert("Vendedor desactivado, pero no se pudo cerrar su acceso: "+ae.message);
+ try{await updateOne(supabase.from("rs_sellers").update({active:false}).eq("id",sellerId))}catch(e){return alert("No se pudo desactivar vendedor: "+e.message)}
+ try{await updateOne(supabase.from("rs_accounts").update({active:false}).eq("user_id",userId),"user_id")}catch(e){return alert("Vendedor desactivado, pero no se pudo cerrar su acceso: "+e.message)}
  alert("Vendedor desactivado. Historial conservado. Pendientes reasignados: "+(replacement?(pending||[]).length:0));
  await load();
 };
 window.resetPassword=async(userId,name)=>{
- const p=prompt("Nueva contraseña temporal para "+name+" (mínimo 8 caracteres):");
+ const p=prompt("Nueva contraseña temporal para "+name+" (mínimo "+(candidateBackend?12:8)+" caracteres):");
  if(!p)return;
- if(p.length<8)return alert("La contraseña debe tener al menos 8 caracteres.");
+ if(p.length<(candidateBackend?12:8))return alert("La contraseña debe tener al menos "+(candidateBackend?12:8)+" caracteres.");
  const r=await fetch(URL+"/functions/v1/rutasales-reset-password",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY,Authorization:"Bearer "+session.access_token},body:JSON.stringify({target_user_id:userId,new_password:p})});
  const j=await r.json();
  if(!r.ok)return alert(j.error||"No se pudo restablecer.");
@@ -96,7 +107,7 @@ $("resetBtn").onclick=async()=>{
  const userId=$("resetUser").value,p=$("resetPass").value;
  $("resetMsg").textContent="";
  if(!userId)return $("resetMsg").textContent="Selecciona un usuario.";
- if(!p||p.length<8)return $("resetMsg").textContent="La contraseña debe tener al menos 8 caracteres.";
+ if(!p||p.length<(candidateBackend?12:8))return $("resetMsg").textContent="La contraseña debe tener al menos "+(candidateBackend?12:8)+" caracteres.";
  $("resetMsg").textContent="Restableciendo…";
  const r=await fetch(URL+"/functions/v1/rutasales-reset-password",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY,Authorization:"Bearer "+session.access_token},body:JSON.stringify({target_user_id:userId,new_password:p})});
  const j=await r.json();

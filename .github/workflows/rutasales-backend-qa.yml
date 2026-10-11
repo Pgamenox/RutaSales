@@ -1,0 +1,73 @@
+name: RutaSales backend QA
+on:
+  push:
+    branches: [work/rutasales-commercial-2.0]
+    paths: ['demo2/**', '.github/workflows/rutasales-backend-qa.yml']
+  pull_request:
+    paths: ['demo2/**', '.github/workflows/rutasales-backend-qa.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rutasales-backend-qa-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  isolated-database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17.11@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3
+        env:
+          POSTGRES_USER: qa_owner
+          POSTGRES_PASSWORD: synthetic_ci_only
+          POSTGRES_DB: rutasales_qa
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U qa_owner -d rutasales_qa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: demo2/backend-qa
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: demo2/backend-qa/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Fallos controlados de alta y reset
+        run: node --test tests/account-failures.test.mjs
+      - name: PostgreSQL embebido
+        run: npm test
+      - name: PostgreSQL nativo - RLS y transacciones
+        env:
+          NATIVE_PG_URL: postgresql://qa_owner:synthetic_ci_only@127.0.0.1:5432/rutasales_qa
+        run: npm test
+      - name: Conexiones independientes - carreras
+        env:
+          NATIVE_PG_URL: postgresql://qa_owner:synthetic_ci_only@127.0.0.1:5432/rutasales_qa
+        run: npm run test:concurrency
+  real-auth-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: demo2/backend-qa
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: demo2/backend-qa/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install pinned Supabase CLI binary
+        run: npm rebuild supabase
+      - name: Install Chromium for isolated UI QA
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Auth real + REST/RPC - stack LOCAL efímero
+        run: node tests/run-local-stack.mjs

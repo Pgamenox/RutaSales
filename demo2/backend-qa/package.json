@@ -1,0 +1,23 @@
+{
+  "name": "rutasales-backend-qa",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test tests/database.test.mjs",
+    "test:concurrency": "node --test tests/concurrency.test.mjs",
+    "test:auth": "node --test tests/auth-api.test.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.3.14",
+    "@supabase/supabase-js": "2.117.3",
+    "esbuild": "0.25.12",
+    "jspdf": "2.5.1",
+    "pg": "8.16.3",
+    "playwright": "1.62.1",
+    "supabase": "2.120.0"
+  }
+}

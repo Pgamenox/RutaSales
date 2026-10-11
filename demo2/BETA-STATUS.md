@@ -1,3 +1,9 @@
+> Continuación 2026-10-11: diagnóstico tenant de altas/reset y confirmación del alta tras respuesta perdida probados. Evidencia vigente: 40 + 40 SQL, 6 carreras, 8 fallos controlados y 22 Auth/API/interfaz. Reconciliación administrativa y Storage siguen pendientes; sin publicación.
+
+> 2026-10-11: candidato independiente con alta/reset por empresa probados en laboratorio; recuperación y Storage privados pendientes. Rama work/rutasales-commercial-2.0, sin merge/publicación. Evidencia vigente en backend-qa/RESULTS.md.
+
+> Estado actualizado: [auditoría y QA del candidato Beta 2.0](COMMERCIAL-AUDIT-2.0.md), con [evidencia SQL/Auth/API/interfaz](backend-qa/RESULTS.md). No apto aún para comercialización; el texto histórico siguiente no sustituye este informe.
+
 # RutaSales — BETA 2.0 / Roles y Acceso Seguro
 
 Estado canónico: 2026-10-06  
